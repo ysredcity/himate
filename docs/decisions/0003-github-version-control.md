@@ -1,7 +1,7 @@
 # ADR 0003：接入 Git 与 GitHub
 
 - 日期：2026-10-21（Asia/Shanghai）
-- 状态：已接受，首次同步进行中
+- 状态：已接受并实施
 - 依据：用户明确要求将项目代码推送到 `https://github.com/ysredcity/himate`。
 
 ## 问题与结论
@@ -18,4 +18,4 @@
 
 ## 验证
 
-首次提交前运行根 gate，推送后通过 `git ls-remote origin refs/heads/main` 对比本地提交。实际同步结果见 [最近交接](../context/handoff.md)。
+2026-10-21 根 `npm run gate` 通过。首次提交成功推送后，通过 GitHub API 读取 main，核对远端提交号与本地一致。实际同步结果见 [最近交接](../context/handoff.md)。
