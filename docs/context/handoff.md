@@ -52,6 +52,6 @@
 
 ## 注意事项
 
-- 2026-11-09 按用户要求提交并推送：`ea0b263` → `origin/feat/home-agents-figma`（新建远端分支，未合并 main，未开 PR）。本机代理 127.0.0.1:7890 不可用，Git 命令临时绕过代理，未改全局配置。`apps/desktop-web/.wbapp_7UjS5tv1ZodAgwr2UUfpui.genie` 疑似工具残留，未提交，待用户确认删除或忽略。
+- 2026-11-09 按用户要求提交并推送：`ea0b263` → `origin/feat/home-agents-figma`（新建远端分支）；随后按用户要求快进合并到 `main` 并推送，未走 PR。本机代理 127.0.0.1:7890 不可用，Git 命令临时绕过代理，未改全局配置。`apps/desktop-web/.wbapp_7UjS5tv1ZodAgwr2UUfpui.genie` 疑似工具残留，未提交，待用户确认删除或忽略。
 - 原首页左上角带红点的「展开导航」按钮现在只在抽屉形态出现；图标栏上的红点按对话状态显示，并非原设计稿的固定装饰红点。
 - 移动端未改动。
