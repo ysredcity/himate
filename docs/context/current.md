@@ -2,7 +2,7 @@
 
 - 更新时间：2026-11-09（Asia/Shanghai）
 - 状态：移动端阶段性完成；桌面端专项开发中（本轮：左侧导航收起改为图标栏）。
-- 当前分支：`feat/home-agents-figma`，HEAD 与 `main` / `origin/main` 同为初始提交 `4cce0a0`。桌面、移动、治理的全部改动均未提交（约 80+ 个文件），提交与推送由用户决定。
+- 当前分支：`feat/home-agents-figma`，已推送到 `origin/feat/home-agents-figma`（2026-11-09 提交 `ea0b263`，含此前全部桌面、移动、治理改动，未合并 `main`）。唯一未提交的是待确认的 `apps/desktop-web/.wbapp_7UjS5tv1ZodAgwr2UUfpui.genie` 残留文件。
 - 截至 2026-11-08 22:50 的逐轮完整记录已归档到 [archive/context-2026-11-08](../archive/context-2026-11-08/current.md)，需要追溯细节时再读。
 
 ## 当前产品
