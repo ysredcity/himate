@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
+import { HomeAgentHub } from "./home-agent-hub"
 import { homeAgents, homeApplications, homeAssets, homeCourses, homeNews, homeReports } from "./home-data"
 
 type Detail = { title: string; image?: string; description: string; prompt?: string }
@@ -23,9 +24,10 @@ export function HomeWorkspaceSections({ onTask, onSelectAgent }: Props) {
   const [visibleApps, setVisibleApps] = useState(homeApplications.map((item) => item.id))
   const [visibleAgents, setVisibleAgents] = useState(homeAgents.map((item) => item.id))
   const [pendingItems, setPendingItems] = useState<string[]>([])
+  const selectedAgents = homeAgents.filter((item) => visibleAgents.includes(item.id))
 
   const configure = (kind: Configuration) => {
-    setPendingItems(kind === "apps" ? visibleApps : visibleAgents)
+    setPendingItems(kind === "apps" ? visibleApps : selectedAgents.map((item) => item.id))
     setConfiguration(kind)
   }
   const openDetail = (item: Detail) => { setCatalog(null); setDetail(item) }
@@ -39,23 +41,23 @@ export function HomeWorkspaceSections({ onTask, onSelectAgent }: Props) {
   const news = (item: typeof homeNews[number]) => openDetail({ title: item.title, image: item.image, description: `来源：${item.source} · ${item.time}。此内容为设计稿中的示例资讯，未接入实时资讯服务，暂无文章正文。` })
 
   const reportCards = () => homeReports.map((item) => <Button key={item.id} variant="ghost" className="h-[92px] min-w-0 flex-col items-start justify-start gap-1 overflow-hidden rounded-[12px] border border-border bg-background p-4 text-left font-normal whitespace-normal hover:bg-accent" onClick={() => reportTask(item.title)}>
-    <span className="w-full truncate text-xs leading-[14px] text-muted-foreground">{item.category}</span>
+    <span className="w-full truncate text-xs leading-[14px] tracking-[0.12px] text-muted-foreground">{item.category}</span>
     <span className="w-full truncate text-sm font-medium leading-5">{item.title}</span>
-    <span className="flex w-full items-center gap-1 text-xs leading-[18px]"><Badge variant="ghost" className="h-[18px] gap-0.5 rounded-sm border-0 px-1 py-0 font-normal text-primary"><AssetIcon src={homeAssets.imgCalendarFold} />每日</Badge><span className="truncate text-muted-foreground">{item.updated}</span></span>
+    <span className="flex w-full items-center gap-1 text-xs leading-[14px] tracking-[0.12px]"><Badge variant="outline" className="h-[18px] gap-0.5 rounded-[4px] border-0 bg-success/8 px-1 py-0 font-normal leading-[14px] text-success-foreground"><AssetIcon src={homeAssets.imgCalendarFold} /><span className="px-px">每日</span></Badge><span className="min-w-0 flex-1 truncate text-muted-foreground">{item.updated}</span></span>
   </Button>)
-  const appCards = (all = false) => homeApplications.filter((item) => all || visibleApps.includes(item.id)).map((item) => <Button key={item.id} variant="ghost" className="h-[94px] min-w-0 flex-col justify-start gap-2 rounded-[12px] border-0 px-2 py-3 font-normal" onClick={() => application(item)}>
+  const appCards = (all = false) => homeApplications.filter((item) => all || visibleApps.includes(item.id)).map((item) => <Button key={item.id} variant="ghost" className="h-[94px] min-w-0 flex-col justify-start gap-2 rounded-[12px] border-0 px-2 py-3 font-normal hover:bg-card hover:shadow-home-card-hover" onClick={() => application(item)}>
     <img src={item.image} alt="" className="size-12 shrink-0 rounded-full object-cover" loading="lazy" />
     <span className="w-full truncate text-xs leading-[14px]">{item.name}</span>
   </Button>)
-  const agentCards = (all = false) => homeAgents.filter((item) => all || visibleAgents.includes(item.id)).map((item, index) => <Button key={item.id} variant="ghost" aria-label={`${item.title} ${index + 1}`} className="h-[84px] min-w-0 justify-start gap-3 rounded-[12px] border border-border bg-background px-4 py-3 text-left whitespace-normal" onClick={() => { setCatalog(null); onSelectAgent(item.prompt) }}>
+  const agentCards = (all = false) => (all ? homeAgents : selectedAgents).map((item, index) => <Button key={item.id} variant="ghost" aria-label={`${item.title} ${index + 1}`} className={cn("h-[84px] min-w-0 justify-start gap-3 rounded-[12px] border border-border bg-background px-4 py-3 text-left whitespace-normal")} onClick={() => { setCatalog(null); onSelectAgent(item.prompt) }}>
     <span className="relative size-10 shrink-0"><img src={item.image} alt="" className="size-10 rounded-full object-cover" loading="lazy" />{item.verified && <span className="absolute right-0 bottom-0 rounded-full border border-background bg-success p-0.5" title="已认证"><AssetIcon src={homeAssets.imgCheck} /></span>}</span>
-    <span className="min-w-0 py-1"><span className="block truncate text-sm font-semibold leading-5">{item.title}</span><span className="mt-1 line-clamp-2 text-xs font-normal leading-[14px] text-muted-foreground">{item.description}</span></span>
+    <span className="min-w-0 flex-1 py-1"><span className="block truncate text-sm font-semibold leading-5">{item.title}</span><span className="mt-1 line-clamp-2 text-xs font-normal leading-[14px] tracking-[0.12px] text-muted-foreground">{item.description}</span></span>
   </Button>)
-  const courseCards = () => homeCourses.map((item) => <Button key={item.title} variant="ghost" className="h-auto min-w-0 flex-col items-stretch justify-start gap-0 rounded-[12px] border-0 p-2 text-left font-normal whitespace-normal" onClick={() => course(item)}>
+  const courseCards = () => homeCourses.map((item) => <Button key={item.title} variant="ghost" className="h-auto min-w-0 flex-col items-stretch justify-start gap-0 rounded-[12px] border-0 p-2 text-left font-normal whitespace-normal hover:bg-card hover:shadow-home-card-hover" onClick={() => course(item)}>
     <span className="relative block aspect-2/1 min-h-0 w-full shrink-0 overflow-hidden"><img src={item.image} alt={item.title} className="absolute inset-0 h-full w-full rounded-[8px] border border-border object-cover" loading="lazy" />{item.due && <Badge variant="destructive" className="absolute top-0 left-0 h-[18px] rounded-tl-lg rounded-br-sm rounded-tr-none rounded-bl-none border-0 bg-destructive px-1 py-0 text-[10px] text-primary-foreground">今日到期</Badge>}</span>
-    <span className="block w-full truncate py-4 text-sm leading-5">{item.title}</span>
+    <span className="block w-full truncate py-4 text-sm font-medium leading-5">{item.title}</span>
   </Button>)
-  const newsCards = () => homeNews.map((item, index) => <Button key={index} variant="ghost" className="h-auto min-w-0 flex-col items-stretch justify-start gap-0 rounded-[12px] border-0 p-2 text-left font-normal whitespace-normal" onClick={() => news(item)}>
+  const newsCards = () => homeNews.map((item, index) => <Button key={index} variant="ghost" className="h-auto min-w-0 flex-col items-stretch justify-start gap-0 rounded-[12px] border-0 p-2 text-left font-normal whitespace-normal hover:bg-card hover:shadow-home-card-hover" onClick={() => news(item)}>
     <img src={item.image} alt={item.title} className="aspect-video w-full rounded-[8px] border border-border object-cover" loading="lazy" />
     <span className="flex w-full flex-col gap-2 py-4"><span className="line-clamp-2 h-10 text-sm font-medium leading-5">{item.title}</span><span className="flex items-center gap-1 text-xs leading-4 text-muted-foreground">{item.badge ? <Badge className="h-4 rounded-sm border-0 px-1 py-0 text-xs font-normal">{item.source}</Badge> : <span className="min-w-0 flex-1 truncate">{item.source}</span>}<span className="ml-auto shrink-0">{item.time}</span></span></span>
   </Button>)
@@ -67,7 +69,7 @@ export function HomeWorkspaceSections({ onTask, onSelectAgent }: Props) {
     <div className="mx-auto flex w-full max-w-[1240px] flex-col gap-10 pb-[120px]">
       <HomeSection title="信数报表" onMore={() => setCatalog("reports")}><div className={grid}>{reportCards()}</div></HomeSection>
       <HomeSection title="我的应用" compact onConfigure={() => configure("apps")} onMore={() => setCatalog("apps")}><div className="grid grid-cols-4 gap-0 @min-[660px]/home:grid-cols-6 @min-[900px]/home:grid-cols-8 @min-[1100px]/home:grid-cols-12">{appCards()}</div>{!visibleApps.length && <EmptySelection onConfigure={() => configure("apps")} />}</HomeSection>
-      <HomeSection title="我的智能体" compact onConfigure={() => configure("agents")} onMore={() => setCatalog("agents")}><div className={grid}>{agentCards()}</div>{!visibleAgents.length && <EmptySelection onConfigure={() => configure("agents")} />}</HomeSection>
+      <HomeSection title="我的智能体" compact headerContent={<HomeAgentHub onOpenPlatform={(item) => openDetail({ title: item.title, description: item.description })} />} onConfigure={() => configure("agents")} onMore={() => setCatalog("agents")}><div className={agentGrid}>{agentCards()}</div>{!selectedAgents.length && <EmptySelection onConfigure={() => configure("agents")} />}</HomeSection>
       <HomeSection title="学习与成长" onMore={() => setCatalog("courses")}><div className={grid}>{courseCards()}</div></HomeSection>
       <HomeSection title="资讯" onMore={() => setCatalog("news")}><div className={grid}>{newsCards()}</div></HomeSection>
     </div>
@@ -91,9 +93,10 @@ export function HomeWorkspaceSections({ onTask, onSelectAgent }: Props) {
 }
 
 const grid = "grid grid-cols-2 gap-2 @min-[660px]/home:grid-cols-3 @min-[900px]/home:grid-cols-4 @min-[1100px]/home:grid-cols-5"
+const agentGrid = "grid gap-2 grid-cols-1 @min-[480px]/home:grid-cols-2 @min-[660px]/home:grid-cols-3 @min-[900px]/home:grid-cols-4 @min-[1100px]/home:grid-cols-5"
 
-function HomeSection({ title, children, onConfigure, onMore, compact }: { title: string; children: ReactNode; onConfigure?: () => void; onMore: () => void; compact?: boolean }) {
-  return <section aria-label={title} className="flex min-w-0 flex-col gap-2"><div className={cn("flex h-8 items-center justify-between", compact && "h-7")}><h2 className="pl-3 text-lg font-semibold leading-7 tracking-[-0.18px]">{title}</h2><div className="flex items-center gap-1">{onConfigure && <Button variant="ghost" size="sm" className="gap-1 px-2 text-sm font-medium max-[659px]:min-h-11" onClick={onConfigure}><AssetIcon src={homeAssets.imgSettings2} />配置</Button>}<Button variant="ghost" size="sm" className="gap-0 px-1.5 text-sm font-medium max-[659px]:min-h-11" onClick={onMore}><span className="px-1">{onConfigure ? "全部" : "更多"}</span><AssetIcon src={homeAssets.imgChevronRight1} /></Button></div></div>{children}</section>
+function HomeSection({ title, children, onConfigure, onMore, compact, headerContent }: { headerContent?: ReactNode; title: string; children: ReactNode; onConfigure?: () => void; onMore: () => void; compact?: boolean }) {
+  return <section aria-label={title} className="flex min-w-0 flex-col gap-2"><div className={cn("flex h-8 items-center justify-between", compact && "h-7", headerContent && "h-auto min-h-8 flex-wrap gap-2")}><h2 className="pl-3 text-lg font-semibold leading-7 tracking-[-0.18px]">{title}</h2>{headerContent && <div className="order-last w-full @min-[660px]/home:order-none @min-[660px]/home:ml-auto @min-[660px]/home:w-auto">{headerContent}</div>}<div className="ml-auto flex items-center gap-1 @min-[660px]/home:ml-0">{onConfigure && <Button variant="ghost" size="sm" className="gap-1 rounded-full px-2 text-sm font-medium max-[659px]:min-h-11" onClick={onConfigure}><AssetIcon src={homeAssets.imgSettings2} />配置</Button>}<Button variant="ghost" size="sm" className="gap-0 rounded-full px-1.5 text-sm font-medium max-[659px]:min-h-11" onClick={onMore}><span className="px-1">{onConfigure ? "全部" : "更多"}</span><AssetIcon src={homeAssets.imgChevronRight1} /></Button></div></div>{children}</section>
 }
 
 function AssetIcon({ src }: { src: string }) {

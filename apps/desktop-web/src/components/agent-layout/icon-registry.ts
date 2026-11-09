@@ -1,10 +1,15 @@
 import {
-  Blocks,
+  BookOpen,
+  UsersRound,
+  Plane,
+  BriefcaseBusiness,
+  ChartNoAxesCombined,
   Bot,
   CalendarClock,
   FileText,
   FolderOpen,
-  MessageSquarePlus,
+  House,
+  GraduationCap,
   MessageSquareText,
   Plug,
   Puzzle,
@@ -20,8 +25,8 @@ export type ContextType =
   | "连接器"
 
 export const navigationIcons = {
-  newConversation: MessageSquarePlus,
-  capabilityHub: Blocks,
+  newConversation: House,
+  capabilityHub: GraduationCap,
   scheduledTask: CalendarClock,
   fileLibrary: FolderOpen,
 } satisfies Record<string, LucideIcon>
@@ -33,4 +38,12 @@ export const contextIcons: Record<ContextType, LucideIcon> = {
   专家: Bot,
   技能: Puzzle,
   连接器: Plug,
+}
+
+export const recommendationIcons: Record<string, LucideIcon> = {
+  knowledge: BookOpen,
+  hr: UsersRound,
+  travel: Plane,
+  office: BriefcaseBusiness,
+  data: ChartNoAxesCombined,
 }

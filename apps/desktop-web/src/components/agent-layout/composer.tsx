@@ -1,5 +1,7 @@
+import { summonableExperts } from "./expert-data"
+import { homeAssets } from "./home-data"
 import { useCallback, useEffect, useRef, useState } from "react"
-import { ArrowUp, ChevronDown, ChevronLeft, ChevronRight, ExternalLink, Mic, Plus, Upload, X } from "lucide-react"
+import { ArrowUp, ArrowUpRight, ChevronDown, ChevronLeft, ChevronRight, ExternalLink, Mic, Plus, Upload, X } from "lucide-react"
 import { toast } from "sonner"
 
 import {
@@ -31,7 +33,7 @@ type UploadItem = { id: string; name: string; size: number }
 const inlineContextTypes = ["文件库", "最近的对话", "技能"] as const
 type InlineContextType = (typeof inlineContextTypes)[number]
 
-const defaultExpertOptions = ["日常办公专家", "文档处理专家", "数据分析专家", "市场调研专家", "园区生活专家", "用户体验专家", "行业研究专家"] as const
+const defaultExpertOptions = summonableExperts.map((expert) => expert.name)
 type ContextMenu = { label: Exclude<ContextType, "upload" | "连接器">; items: string[] }
 
 const defaultContextMenus: ContextMenu[] = [
@@ -83,15 +85,21 @@ type ComposerProps = {
   /** Visual keys for custom expert options, shared with the home recommendation avatars. */
   expertVisualKeys?: Readonly<Record<string, ExpertVisualKey>>
   onSend?: (message: string, context: ContextItem[]) => void
+  /** Changes when an external recommendation should focus the end of the draft. */
+  focusRequest?: number
   draft?: string
   onDraftChange?: (value: string) => void
   selectedExpert?: string | null
   onSelectedExpertChange?: (expert: string | null) => void
   /** `/` 与 `@` 引用菜单的展开方向，默认向上 */
   menuSide?: MenuSide
+  /** 提供时，专家子菜单底部显示「查看更多专家」，用于打开专家目录 */
+  onBrowseExperts?: () => void
 }
 
-export function Composer({ appearance = "default", placeholder = "今天帮你做些什么？@引用内容，/调用能力", actionIcons, disabled = false, showConnectorSelect = false, expertOptions, expertVisualKeys, onSend, draft, onDraftChange, selectedExpert, onSelectedExpertChange, menuSide = "above" }: ComposerProps) {
+const defaultActionIcons = { add: homeAssets.imgIcon, mic: homeAssets.imgIcon1, send: homeAssets.imgIcon2 }
+
+export function Composer({ appearance = "welcome", placeholder = "发送消息给我", actionIcons = defaultActionIcons, disabled = false, showConnectorSelect = false, expertOptions, expertVisualKeys, onSend, focusRequest = 0, draft, onDraftChange, selectedExpert, onSelectedExpertChange, menuSide = "above", onBrowseExperts }: ComposerProps) {
   const [uploads, setUploads] = useState<UploadItem[]>([])
   const [uncontrolledExpert, setUncontrolledExpert] = useState<string | null>(null)
   const [recording, setRecording] = useState(false)
@@ -100,6 +108,7 @@ export function Composer({ appearance = "default", placeholder = "今天帮你�
   const [enabledConnectors, setEnabledConnectors] = useState<Set<string>>(() => new Set())
   const fileInputRef = useRef<HTMLInputElement>(null)
   const editorRef = useRef<HTMLDivElement>(null)
+  const lastFocusRequest = useRef(focusRequest)
   const iconTemplatesRef = useRef<HTMLDivElement>(null)
   const savedRangeRef = useRef<Range | null>(null)
   const mediaStreamRef = useRef<MediaStream | null>(null)
@@ -151,9 +160,19 @@ export function Composer({ appearance = "default", placeholder = "今天帮你�
   useEffect(() => {
     const editor = editorRef.current
     if (draft === undefined || !editor) return
-    if (readEditor().text === draft) return
-    editor.textContent = draft
-  }, [draft])
+    if (readEditor().text !== draft) editor.textContent = draft
+    if (lastFocusRequest.current !== focusRequest) {
+      lastFocusRequest.current = focusRequest
+      editor.focus({ preventScroll: true })
+      const range = document.createRange()
+      range.selectNodeContents(editor)
+      range.collapse(false)
+      const selection = window.getSelection()
+      selection?.removeAllRanges()
+      selection?.addRange(range)
+      savedRangeRef.current = range.cloneRange()
+    }
+  }, [draft, focusRequest])
 
   const setExpert = (expert: string | null) => {
     if (selectedExpert === undefined) setUncontrolledExpert(expert)
@@ -328,18 +347,18 @@ export function Composer({ appearance = "default", placeholder = "今天帮你�
         </div>
       </div>
       <div className="flex min-h-14 items-center justify-between gap-2 p-2.5">
-        <input ref={fileInputRef} type="file" multiple disabled={disabled} className="hidden" onChange={(event) => {
+        <input ref={fileInputRef} type="file" accept="image/*" multiple disabled={disabled} className="hidden" onChange={(event) => {
           const files = Array.from(event.target.files ?? []).map((file) => ({ id: `upload-${file.name}-${file.lastModified}`, name: file.name, size: file.size }))
           setUploads((items) => [...items, ...files.filter((file) => !items.some((item) => item.id === file.id))])
           event.currentTarget.value = ""
         }} />
         <div className="flex min-w-0 flex-1 items-center gap-2">
-          <AddContextMenu iconSrc={actionIcons?.add} menus={contextMenus} expertVisualKeys={expertVisualKeys} disabled={interactionsDisabled} onLocalUpload={() => fileInputRef.current?.click()} onSelect={addContext} />
+          <AddContextMenu menuSide={menuSide} menus={contextMenus.filter((menu) => menu.label === "专家")} expertVisualKeys={expertVisualKeys} disabled={interactionsDisabled} onLocalUpload={() => fileInputRef.current?.click()} onSelect={addContext} onBrowseExperts={onBrowseExperts} />
           <div className="flex min-w-0 items-center gap-2 overflow-x-auto px-1">
             {showConnectorSelect ? <ConnectorMenu disabled={interactionsDisabled} enabled={enabledConnectors} onEnabledChange={setEnabledConnectors} /> : null}
             {experts.map((expert) => (
               <span key={expert.id} className="flex h-9 shrink-0 items-center gap-1 rounded-full bg-primary-bg px-2 text-sm font-medium text-primary">
-                <ExpertAvatar expert={expert.label} className="size-5 [&_svg]:size-3" /><span className="px-0.5">{expert.label}</span>
+                <ExpertAvatar expert={expert.label} visualKey={expertVisualKeys?.[expert.label] ?? summonableExperts.find((item) => item.name === expert.label)?.visualKey} className="size-5 [&_svg]:size-3" /><span className="px-0.5">{expert.label}</span>
                 <button type="button" disabled={interactionsDisabled} aria-label={`移除${expert.label}`} className="rounded-full hover:bg-primary/10" onClick={() => setExpert(null)}><X className="size-4" /></button>
               </span>
             ))}
@@ -547,15 +566,15 @@ function VoiceWave() {
   )
 }
 
-function AddContextMenu({ iconSrc, menus, expertVisualKeys, disabled, onLocalUpload, onSelect }: { iconSrc?: string; menus: ContextMenu[]; expertVisualKeys?: Readonly<Record<string, ExpertVisualKey>>; disabled?: boolean; onLocalUpload: () => void; onSelect: (label: string, type: ContextType) => void }) {
+function AddContextMenu({ menuSide, menus, expertVisualKeys, disabled, onLocalUpload, onSelect, onBrowseExperts }: { menuSide: MenuSide; menus: ContextMenu[]; expertVisualKeys?: Readonly<Record<string, ExpertVisualKey>>; disabled?: boolean; onLocalUpload: () => void; onSelect: (label: string, type: ContextType) => void; onBrowseExperts?: () => void }) {
   return (
     <DropdownMenu>
       <Tooltip>
-        <TooltipTrigger render={<DropdownMenuTrigger disabled={disabled} render={<IconButton aria-label={iconSrc ? "上传图片" : "添加文件和更多内容"} disabled={disabled} className="size-9">{iconSrc ? <img src={iconSrc} alt="" /> : <Plus className="size-5" />}</IconButton>} />} />
-        <TooltipContent>{iconSrc ? "上传图片" : "添加文件和更多内容"}</TooltipContent>
+        <TooltipTrigger render={<DropdownMenuTrigger disabled={disabled} render={<IconButton aria-label="添加上下文" disabled={disabled} className="size-9"><Plus className="size-5" /></IconButton>} />} />
+        <TooltipContent>添加上下文</TooltipContent>
       </Tooltip>
-      <DropdownMenuContent align="start" side="top" sideOffset={8} className="w-52">
-        <DropdownMenuItem onClick={onLocalUpload}><Upload />本地上传</DropdownMenuItem>
+      <DropdownMenuContent align="start" side={menuSide === "below" ? "bottom" : "top"} sideOffset={8} className="w-40 rounded-2xl [&_[data-slot=dropdown-menu-item]]:rounded-[10px] [&_[data-slot=dropdown-menu-sub-trigger]]:rounded-[10px]">
+        <DropdownMenuItem onClick={onLocalUpload}><Upload />上传图片</DropdownMenuItem>
         {menus.map(({ items, label }) => {
           const ContextIcon = contextIcons[label]
           return (
@@ -564,11 +583,15 @@ function AddContextMenu({ iconSrc, menus, expertVisualKeys, disabled, onLocalUpl
             {label === "专家" && <DropdownMenuSeparator />}
             <DropdownMenuSub>
               <DropdownMenuSubTrigger><ContextIcon />{label}</DropdownMenuSubTrigger>
-              <DropdownMenuSubContent className="w-60">
+              <DropdownMenuSubContent className="w-44 rounded-2xl [&_[data-slot=dropdown-menu-item]]:rounded-[10px]">
                 {items.map((item) => <DropdownMenuItem key={item} onClick={() => onSelect(item, label)}>
                   {label === "文件库" ? <LibraryFileIcon fileName={item} /> : label === "专家" ? <ExpertAvatar expert={item} visualKey={expertVisualKeys?.[item]} /> : <ContextIcon />}
                   <span className="min-w-0 truncate">{item}</span>
                 </DropdownMenuItem>)}
+                {label === "专家" && onBrowseExperts && <>
+                  {items.length > 0 && <DropdownMenuSeparator />}
+                  <DropdownMenuItem onClick={onBrowseExperts}><ArrowUpRight />查看更多专家</DropdownMenuItem>
+                </>}
               </DropdownMenuSubContent>
             </DropdownMenuSub>
           </div>

@@ -32,7 +32,7 @@ export function useDemoPlayback(scene: ConversationScene) {
       productBlock: undefined,
       execution: {
         ...turn.execution, status: "running", summary: turn.execution.steps[progress]?.title ?? "正在整理结果", duration: "执行中",
-        steps: turn.execution.steps.map((step, stepIndex) => ({ ...step, status: stepIndex < progress ? "completed" : stepIndex === progress ? "running" : "pending", actions: stepIndex < progress ? step.actions : undefined })),
+        steps: turn.execution.steps.map((step, stepIndex) => ({ ...step, status: stepIndex < progress ? "completed" : stepIndex === progress ? "running" : "pending", actions: stepIndex < progress ? step.actions : undefined, detail: stepIndex < progress ? step.detail : undefined })),
       },
     }),
   }

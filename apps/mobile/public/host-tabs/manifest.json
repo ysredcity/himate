@@ -1,0 +1,29 @@
+{
+  "source": "从飞书宿主截图 public/figma-home/53a53.png 底部 Tab 栏抠出的透明图标，用于宿主预览壳分层与深色模式（2026-11-08）",
+  "assets": [
+    {
+      "file": "calendar.png",
+      "bytes": 2443
+    },
+    {
+      "file": "checkin.png",
+      "bytes": 2981
+    },
+    {
+      "file": "docs.png",
+      "bytes": 2662
+    },
+    {
+      "file": "message.png",
+      "bytes": 6798
+    },
+    {
+      "file": "more.png",
+      "bytes": 8078
+    },
+    {
+      "file": "workbench.png",
+      "bytes": 4455
+    }
+  ]
+}

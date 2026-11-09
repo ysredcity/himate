@@ -4,6 +4,7 @@ import { ArrowDownLeft, ArrowUpLeft } from 'lucide-react'
 export type RecommendationListItem = {
   id: string
   content: string
+  label?: string
 }
 
 export type RecommendationListProps = {
@@ -36,7 +37,11 @@ export function RecommendationList({ items, arrowDirection, onSelect, className 
           onClick={() => onSelect(item)}
           className="group flex w-full items-center gap-2 rounded-[10px] px-3 py-2 text-left text-sm leading-5 text-foreground outline-none transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:ring-3 focus-visible:ring-ring/50"
         >
-          <span className="min-w-0 flex-1 truncate">{item.content}</span>
+          {item.label && <>
+            <span className="shrink-0 font-medium">{item.label}</span>
+            <span aria-hidden="true" className="mx-1 h-3.5 shrink-0 border-l border-border" />
+          </>}
+          <span className={`min-w-0 flex-1 truncate ${item.label ? 'text-muted-foreground' : ''}`}>{item.content}</span>
           <ArrowIcon aria-hidden="true" className={`size-4 shrink-0 text-muted-foreground opacity-80 transition-transform ${arrowMotionClasses[arrowDirection]}`} />
         </ButtonPrimitive>
       ))}

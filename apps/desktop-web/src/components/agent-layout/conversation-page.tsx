@@ -1,5 +1,5 @@
 import { useRef, useState } from "react"
-import { IndentIncrease, Menu, MessageSquarePlus, MoreHorizontal, Pencil, Pin, PinOff, SquarePen } from "lucide-react"
+import { IndentIncrease, Menu, MessageSquarePlus, MoreHorizontal, Pencil, Pin, PinOff, SquarePen, Trash2 } from "lucide-react"
 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
@@ -17,14 +17,16 @@ type ConversationPageProps = {
   isSidebarDocked: boolean
   onNewChat: () => void
   onOpenSidebar: () => void
+  onBrowseExperts?: () => void
   onOpenArtifact: (target: ArtifactTarget) => void
   onApprovalStatusChange: (conversation: Conversation, status: "approved" | "rejected") => void
   onPinnedChange: (conversation: Conversation, pinned: boolean) => void
+  onDelete: (conversation: Conversation) => void
   onRename: (conversation: Conversation) => void
   pinned: boolean
 }
 
-export function ConversationPage({ onSceneChange, config, conversation, createDraftScene, isSidebarDocked, onApprovalStatusChange, onNewChat, onOpenArtifact, onOpenSidebar, onPinnedChange, onRename, pinned }: ConversationPageProps) {
+export function ConversationPage({ onSceneChange, config, conversation, createDraftScene, isSidebarDocked, onApprovalStatusChange, onNewChat, onOpenArtifact, onOpenSidebar, onBrowseExperts, onPinnedChange, onDelete, onRename, pinned }: ConversationPageProps) {
   const mobile = useMediaQuery("(max-width: 659px)")
   const titleRef = useRef<HTMLHeadingElement>(null)
   const [titleTruncated, setTitleTruncated] = useState(false)
@@ -53,9 +55,9 @@ export function ConversationPage({ onSceneChange, config, conversation, createDr
           <div className="flex h-10 shrink-0 items-center rounded-full border border-border bg-background/65 px-1 shadow-sm backdrop-blur-2xl dark:border-border">
             <IconButton aria-label="新对话" className="size-9 [&_svg]:size-5" onClick={onNewChat}><MessageSquarePlus /></IconButton>
             <span className="h-[18px] w-px bg-border" />
-            <ConversationMoreMenu conversation={conversation} pinned={pinned} onPinnedChange={onPinnedChange} onRename={onRename} buttonClassName="size-9 [&_svg]:size-5" />
+            <ConversationMoreMenu conversation={conversation} pinned={pinned} onPinnedChange={onPinnedChange} onDelete={onDelete} onRename={onRename} buttonClassName="size-9 [&_svg]:size-5" />
           </div>
-        ) : <ConversationMoreMenu conversation={conversation} pinned={pinned} onPinnedChange={onPinnedChange} onRename={onRename} />}
+        ) : <ConversationMoreMenu conversation={conversation} pinned={pinned} onPinnedChange={onPinnedChange} onDelete={onDelete} onRename={onRename} />}
       </header>
 
       <ConversationSection
@@ -65,6 +67,7 @@ export function ConversationPage({ onSceneChange, config, conversation, createDr
         approvalStatus={conversation.approvalStatus}
         composerExpertOptions={config.composerExpertOptions}
         composerExpertVisualKeys={config.composerExpertVisualKeys}
+        onBrowseExperts={onBrowseExperts}
         scene={scene}
         showConnectorSelect={config.showConnectorSelect ?? true}
         identity={config.identity}
@@ -81,7 +84,7 @@ function HeaderAction({ children, className, label, onClick }: { children: React
   return <Tooltip><TooltipTrigger render={<IconButton aria-label={label} className={className} onClick={onClick}>{children}</IconButton>} /><TooltipContent side="bottom">{label}</TooltipContent></Tooltip>
 }
 
-function ConversationMoreMenu({ buttonClassName, conversation, onPinnedChange, onRename, pinned }: { buttonClassName?: string; conversation: Conversation; onPinnedChange: (conversation: Conversation, pinned: boolean) => void; onRename: (conversation: Conversation) => void; pinned: boolean }) {
+function ConversationMoreMenu({ buttonClassName, conversation, onPinnedChange, onDelete, onRename, pinned }: { buttonClassName?: string; conversation: Conversation; onPinnedChange: (conversation: Conversation, pinned: boolean) => void; onRename: (conversation: Conversation) => void; onDelete: (conversation: Conversation) => void; pinned: boolean }) {
   return (
     <DropdownMenu>
       <Tooltip>
@@ -91,6 +94,7 @@ function ConversationMoreMenu({ buttonClassName, conversation, onPinnedChange, o
       <DropdownMenuContent align="end" side="bottom" sideOffset={4} className="w-40">
         <DropdownMenuItem onClick={() => onRename(conversation)}><Pencil />重命名</DropdownMenuItem>
         <DropdownMenuItem onClick={() => onPinnedChange(conversation, !pinned)}>{pinned ? <PinOff /> : <Pin />}{pinned ? "取消置顶" : "置顶"}</DropdownMenuItem>
+        <DropdownMenuItem variant="destructive" onClick={() => onDelete(conversation)}><Trash2 />删除对话</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   )

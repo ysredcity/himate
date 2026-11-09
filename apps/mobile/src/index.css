@@ -1,0 +1,928 @@
+/*
+ * Agent 模式（新对话、对话、会话抽屉、产物查看）使用 pangea-design-ai 沉浸式模板的主题 Token，
+ * 由 theme.css 写在 :root 与 .dark 上，支持深色。
+ * 工作台首页与宿主预览壳只做浅色：在 .mobile-app / .host-preview 上重新声明首页 Token，
+ * 所以即使 <html> 带 .dark，首页也保持原有浅色视觉。
+ */
+@import "./agent-ui/immersive/theme.css";
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply m-0 min-h-dvh antialiased bg-background text-foreground;
+  }
+  html {
+    @apply min-h-full font-sans;
+  }
+  #root {
+    @apply min-h-dvh;
+  }
+}
+/* 模板引用但未定义的横滑容器工具类：保留滚动、隐藏滚动条 */
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+:root {
+  --mobile-design-width: 402px;
+  --agent-tint: linear-gradient(
+    115deg,
+    rgb(118 205 196 / 30%),
+    rgb(118 205 196 / 0%)
+  );
+  --card-header-shadow: 0 2px 12px rgb(0 0 0 / 10%);
+  --life-shadow: 0 2px 12px rgb(0 0 0 / 6%);
+  --agent-underline: #00d5be;
+  --platform-glass: rgb(255 255 255 / 30%);
+  --platform-inset: inset 2px 2px 32px var(--background);
+  --hub-inset: inset 0 12px 64px rgb(17 136 172 / 15%);
+  --page: #fafafa;
+  --success-bg: #eaf9f3;
+  --overlay: rgb(0 0 0 / 30%);
+  --shadow: 0 2px 12px rgb(0 0 0 / 4%);
+  --floating-shadow: 0 4px 16px rgb(0 0 0 / 10%);
+  --glass: rgb(255 255 255 / 85%);
+  /* 首页底部输入胶囊与历史按钮（Figma 1958:31374）：白 65% + 16px 模糊 */
+  --composer-glass: rgb(255 255 255 / 65%);
+  --glass-border: rgb(255 255 255 / 80%);
+  --banner-shade: linear-gradient(transparent, rgb(0 0 0 / 80%));
+  --balance-gradient: linear-gradient(115deg, #bfcee6, #e0e9f5);
+  --body-glow: radial-gradient(
+    ellipse at top left,
+    rgb(36 110 184 / 13%),
+    transparent 400px
+  );
+}
+/* 首页与宿主壳的浅色 Token；secondary / input / ring 沿用首页原有映射 */
+.mobile-app,
+.host-preview {
+  --background: #fff;
+  --foreground: #262626;
+  --muted: #f3f4f6;
+  --muted-foreground: #737373;
+  --primary: #009689;
+  --primary-foreground: #fff;
+  --border: #e5e7eb;
+  --destructive: #fb2c36;
+  --success: #007a55;
+  --secondary: #f3f4f6;
+  --secondary-foreground: #262626;
+  --input: #e5e7eb;
+  --ring: #009689;
+  --radius: 8px;
+  /* 飞书 Tab 栏（从宿主截图取色） */
+  --host-tab-bg: #fff;
+  --host-tab-border: #d4d6d5;
+  --host-tab-label: #676c72;
+  --host-tab-active: #2d57b9;
+  --host-indicator: #bdbdbd;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft Yahei",
+    sans-serif;
+  color: var(--foreground);
+  font-synthesis: none;
+  color-scheme: light;
+  /* 模板 body 的 antialiased 只用于 Agent 模式，首页保持原有字体渲染 */
+  -webkit-font-smoothing: auto;
+  -moz-osx-font-smoothing: auto;
+}
+/* 宿主容器跟随宿主 header 的明暗切换；首页（iframe 内 .mobile-app）仍固定浅色 */
+.dark .host-preview {
+  --background: var(--color-neutral-900);
+  --foreground: var(--color-neutral-100);
+  --muted: var(--color-neutral-800);
+  --muted-foreground: var(--color-neutral-400);
+  --border: rgb(255 255 255 / 8%);
+  --host-tab-bg: var(--color-neutral-900);
+  --host-tab-border: rgb(255 255 255 / 8%);
+  --host-tab-label: var(--color-neutral-400);
+  --host-tab-active: #6f95ff;
+  --host-indicator: var(--color-neutral-500);
+  color-scheme: dark;
+}
+.mobile-app button,
+.host-preview button {
+  cursor: pointer;
+}
+.mobile-app button:focus-visible,
+.mobile-app input:focus-visible,
+.host-preview button:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
+}
+.mobile-app {
+  max-width: var(--mobile-design-width);
+  min-height: 100dvh;
+  margin: auto;
+  background: var(--muted);
+  position: relative;
+}
+.home-body {
+  padding: 16px 16px calc(112px + env(safe-area-inset-bottom));
+  background: var(--body-glow);
+  background-size: 100% 402px;
+  background-repeat: no-repeat;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.home-body section {
+  min-width: 0;
+}
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 44px;
+  margin: 8px 0 8px;
+  padding-left: 8px;
+}
+.section-head h2 {
+  font-size: 18px;
+  line-height: 28px;
+  font-weight: 600;
+  letter-spacing: -0.18px;
+}
+.section-head > div {
+  display: flex;
+}
+.section-head button {
+  min-height: 44px;
+  padding: 0 6px;
+  color: var(--muted-foreground);
+  font-weight: 400;
+  gap: 2px;
+}
+.section-head svg {
+  width: 16px;
+  height: 16px;
+}
+.banner {
+  aspect-ratio: 16/9;
+  border-radius: 16px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: var(--shadow);
+  isolation: isolate;
+}
+.banner-link {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border-radius: 16px;
+  white-space: normal;
+  text-align: left;
+}
+.banner-link > img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.banner-caption {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 24px 16px 16px;
+  backdrop-filter: blur(2px);
+  background: var(--banner-shade);
+  color: var(--primary-foreground);
+  font-size: 16px;
+  line-height: 20px;
+  font-weight: 500;
+  display: block !important;
+}
+.banner-caption.clamp-two {
+  max-height: 88px;
+}
+.dots {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 6px;
+  margin-top: 16px;
+  position: relative;
+}
+.pager-hit {
+  position: absolute;
+  min-width: 44px;
+  height: 44px;
+  padding: 0 4px;
+  border-radius: 10px;
+}
+.pager-indicators {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  pointer-events: none;
+}
+.pager-indicators > span {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0.2;
+}
+.pager-indicators > .active {
+  width: 16px;
+  opacity: 1;
+}
+.banner .dots {
+  position: absolute;
+  left: 50%;
+  bottom: 8px;
+  transform: translateX(-50%);
+  margin: 0;
+  color: var(--primary-foreground);
+}
+.banner .pager-indicators > .active {
+  opacity: 0.6;
+}
+.report-list {
+  background: var(--background);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  padding: 4px 0;
+}
+.report {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  padding: 12px;
+  width: 100%;
+  height: 66px;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 400;
+  white-space: normal;
+  text-align: left;
+}
+.report-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+  line-height: 24px;
+}
+.report-top > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.frequency {
+  font-size: 14px;
+  line-height: 20px;
+  padding: 0 6px;
+  color: var(--success);
+  background: var(--success-bg);
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+.metadata {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  line-height: 14px;
+  color: var(--muted-foreground);
+  font-weight: 400;
+}
+.app-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.app-item {
+  display: flex;
+  flex-direction: column;
+  height: auto;
+  min-height: 96px;
+  padding: 8px 4px;
+  gap: 8px;
+  font-weight: 400;
+  min-width: 0;
+}
+.app-item img {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.app-item > span {
+  font-size: 13px;
+  line-height: 20px;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.two-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.agent-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 500;
+  min-width: 0;
+}
+.agent-title img {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+}
+.agent-title > span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.clamp-two {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.muted {
+  color: var(--muted-foreground);
+  font-size: 14px;
+  line-height: 20px;
+}
+.life-card {
+  background: var(--background);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+.balance-card {
+  position: relative;
+  isolation: isolate;
+  padding: 12px;
+  background: var(--balance-gradient);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+}
+.balance-decoration {
+  position: absolute;
+  right: 14px;
+  top: 0;
+  width: 100px;
+  height: 100px;
+  /* 素材 SVG 内已带 opacity 0.2（Figma 3264:36534），这里不再叠加，否则实际只有 4% 看不清 */
+  z-index: -1;
+}
+.balance-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 600;
+}
+.balance-top button {
+  height: 44px;
+  width: 44px;
+}
+.balance-value {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0 0 16px;
+}
+.balance-value strong {
+  font-size: 36px;
+  font-weight: 600;
+}
+.balance-card .two-grid button {
+  height: 44px;
+  background: var(--glass);
+  font-size: 14px;
+  padding: 0 4px;
+  border-radius: 999px;
+}
+.life-services {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 12px;
+}
+.life-services button {
+  justify-content: flex-start;
+  height: 52px;
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 400;
+  padding: 8px;
+  white-space: normal;
+  text-align: left;
+}
+.life-services img {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+}
+.image-card {
+  padding: 0;
+  display: flex;
+  height: auto;
+  flex-direction: column;
+  align-items: stretch;
+  overflow: hidden;
+  background: var(--background);
+  box-shadow: var(--shadow);
+  border-radius: 8px;
+  white-space: normal;
+  font-size: 14px;
+  line-height: 20px;
+  text-align: left;
+  gap: 0;
+  justify-content: flex-start;
+  font-weight: 500;
+}
+.image-card > img {
+  width: 100%;
+  aspect-ratio: 16/9;
+  object-fit: cover;
+}
+.image-content {
+  padding: 12px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.image-content > .clamp-two {
+  height: 40px;
+}
+.image-content .metadata span:first-child {
+  color: var(--primary);
+}
+.demo-note {
+  font-size: 12px;
+  line-height: 20px;
+  color: var(--muted-foreground);
+  text-align: center;
+  padding: 12px 0;
+}
+.footer {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: var(--mobile-design-width);
+  z-index: 20;
+  padding-bottom: env(safe-area-inset-bottom);
+  background: transparent;
+}
+.composer-row {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  align-items: center;
+}
+.history-button,
+.composer {
+  background: var(--composer-glass);
+  border: 1px solid var(--glass-border);
+  border-radius: 28px;
+  box-shadow: var(--floating-shadow);
+  backdrop-filter: blur(16px);
+}
+.history-wrapper {
+  position: relative;
+  flex-shrink: 0;
+}
+.history-indicator {
+  position: absolute;
+  top: 3px;
+  left: 39px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--destructive);
+  pointer-events: none;
+}
+.history-button {
+  width: 48px;
+  height: 48px;
+  padding: 0;
+}
+.history-button svg {
+  width: 24px;
+  height: 24px;
+}
+.composer {
+  flex: 1;
+  display: flex;
+  min-width: 0;
+  /* 设计稿：胶囊 6px 内边距 + 文字区 12px，文字距左缘 19px（含 1px 描边） */
+  padding: 0 3px 0 6px;
+  height: 48px;
+  align-items: center;
+}
+.composer input {
+  width: 100%;
+  min-width: 0;
+  height: 36px;
+  padding: 6px 12px;
+  border: 0;
+  background: transparent;
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--foreground);
+  outline-offset: 0;
+}
+.composer input::placeholder {
+  color: var(--muted-foreground);
+}
+.composer button {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+}
+.composer svg {
+  width: 20px;
+  height: 20px;
+}
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  background: var(--overlay);
+  z-index: 40;
+}
+.sheet {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  width: 100%;
+  max-width: var(--mobile-design-width);
+  max-height: 88dvh;
+  overflow-y: auto;
+  background: var(--background);
+  border-radius: 20px 20px 0 0;
+  padding: 20px 20px calc(24px + env(safe-area-inset-bottom));
+  outline: none;
+  box-shadow: var(--floating-shadow);
+}
+.sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 18px;
+  font-weight: 600;
+}
+.sheet-head h2 {
+  overflow-wrap: anywhere;
+}
+.touch {
+  width: 44px;
+  height: 44px;
+}
+.sheet-content {
+  padding-top: 20px;
+  line-height: 1.6;
+}
+.sheet-content button {
+  min-height: 44px;
+}
+.entry-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.entry-row,
+.config-row {
+  width: 100%;
+  justify-content: flex-start;
+  min-height: 52px;
+  height: auto;
+  padding: 8px;
+  white-space: normal;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+}
+.entry-row img,
+.config-row img {
+  width: 32px;
+  height: 32px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+.checkbox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.checkbox[data-checked] {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+.checkbox svg {
+  width: 18px;
+  height: 18px;
+}
+.save-config {
+  margin-top: 20px;
+  width: 100%;
+}
+.detail > img {
+  max-height: 240px;
+  object-fit: contain;
+  margin-bottom: 16px;
+}
+.detail p {
+  margin-bottom: 16px;
+}
+.artifact-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: inherit;
+}
+@media (min-width: 403px) {
+  .mobile-app {
+    border-inline: 1px solid var(--border);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+.agent-hub {
+  background: var(--background);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+.agent-hub-hero {
+  position: relative;
+  isolation: isolate;
+  padding: 24px 12px 12px;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: var(--hub-inset), var(--card-header-shadow);
+}
+.agent-hub-background {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+}
+.agent-hub-background img {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.agent-hub-intro {
+  padding: 12px 8px;
+  margin-bottom: 12px;
+}
+.agent-hub-intro p {
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 28px;
+  letter-spacing: -0.2px;
+}
+.agent-platforms button,
+.balance-card .two-grid button {
+  height: 44px;
+  gap: 4px;
+  border: 0;
+  border-radius: 999px;
+  font-size: 16px;
+  font-weight: 500;
+  background: var(--platform-glass);
+  box-shadow: var(--platform-inset);
+  backdrop-filter: blur(12px);
+}
+.agent-platforms img {
+  width: 20px;
+  height: 20px;
+}
+.agent-hub-list {
+  padding: 12px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.agent-row {
+  width: 100%;
+  height: 68px;
+  padding: 12px;
+  display: flex;
+  align-items: stretch;
+  flex-direction: column;
+  gap: 0;
+  text-align: left;
+  white-space: normal;
+  font-weight: 400;
+}
+.agent-row .agent-title {
+  flex-shrink: 0;
+}
+.agent-description {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--muted-foreground);
+  padding-left: 32px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.balance-card {
+  box-shadow: none;
+}
+.balance-top,
+.balance-value {
+  padding-inline: 8px;
+}
+.balance-value {
+  margin-bottom: 20px;
+}
+.life-services {
+  padding: 8px;
+}
+.life-services button {
+  padding: 12px;
+  white-space: nowrap;
+}
+.life-services button img {
+  flex-shrink: 0;
+}
+.life-services button {
+  font-size: 14px;
+  letter-spacing: 0;
+  gap: 8px;
+}
+
+.life-services button span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.course-grid .image-content > .clamp-two {
+  height: auto;
+}
+.agent-platforms {
+  grid-template-columns: minmax(0, 1fr);
+}
+.agent-hub-list {
+  padding: 8px 8px 16px;
+}
+.agent-hub-background::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--agent-tint);
+}
+.balance-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: var(--card-header-shadow);
+}
+.balance-summary {
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.balance-top {
+  padding: 0;
+  height: 24px;
+}
+.balance-top button {
+  height: 24px;
+  width: 20px;
+  min-width: 20px;
+  padding: 0;
+  position: relative;
+}
+.balance-top button::before {
+  content: "";
+  position: absolute;
+  width: 44px;
+  height: 44px;
+}
+.balance-top button svg {
+  width: 20px;
+  height: 20px;
+}
+.balance-value {
+  padding: 0;
+  margin: 0;
+  gap: 4px;
+}
+.balance-value strong {
+  font-family: "DIN Pro", Arial, sans-serif;
+  font-size: 36px;
+  line-height: 40px;
+  font-weight: 700;
+  letter-spacing: -0.79px;
+}
+.balance-decoration {
+  right: 14px;
+  top: -0.45px;
+}
+.life-card {
+  box-shadow: var(--life-shadow);
+}
+.life-card .dots {
+  margin-top: 8px;
+  margin-bottom: 16px;
+}
+.life-services {
+  padding: 8px 8px 0;
+}
+.balance-card .two-grid img {
+  width: 20px;
+  height: 20px;
+}
+
+.app-item img {
+  border: 1px solid var(--border);
+}
+.image-card,
+.app-item,
+.report,
+.agent-row {
+  border: 0;
+}
+.balance-value {
+  height: 40px;
+  align-items: flex-end;
+}
+.balance-value > span {
+  line-height: 24px;
+}
+/* 余额隐藏态（设计截图）：星号与数字同为 36px 粗体，视觉居中于 40px 行内；眼睛图标转为次要色 */
+.balance-masked {
+  display: flex;
+  height: 40px;
+  align-items: center;
+  overflow: hidden;
+}
+.balance-masked > span {
+  display: block;
+  font-size: 40px;
+  line-height: 40px;
+  letter-spacing: 1px;
+  transform: translateY(8px);
+}
+.balance-top button[aria-label="显示余额"] {
+  color: var(--muted-foreground);
+}
+
+.section-head button {
+  border: 0;
+  gap: 0;
+  padding: 0 6px;
+}
+.section-head button > span {
+  padding: 0 4px;
+}
+.section-head > div {
+  gap: 4px;
+}
+.banner-link {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 240ms ease-in-out;
+  z-index: 0;
+}
+.banner-link.is-active {
+  opacity: 1;
+  pointer-events: auto;
+  z-index: 1;
+}
+.banner .dots {
+  z-index: 2;
+}
+.section-head button {font-size:14px;line-height:20px;font-weight:500;flex-shrink:0}

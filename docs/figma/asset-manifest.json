@@ -174,5 +174,45 @@
   "imgCheck": {
     "path": "/figma-home/be471.svg",
     "bytes": 539
+  },
+  "imgAgentHubBackground": {
+    "path": "/figma-home/4a142.png",
+    "bytes": 1258036,
+    "sourceNode": "4995:177428"
+  },
+  "imgAgentPlanning": {
+    "path": "/figma-home/98ca1.svg",
+    "bytes": 1737,
+    "sourceNode": "4995:177428"
+  },
+  "imgAgentOperations": {
+    "path": "/figma-home/67aee.svg",
+    "bytes": 1037,
+    "sourceNode": "4995:177428"
+  },
+  "imgAgentManagement": {
+    "path": "/figma-home/3d716.svg",
+    "bytes": 6737,
+    "sourceNode": "4995:177428"
+  },
+  "imgAgentHeadlineUnderline": {
+    "path": "/figma-home/a2b00.svg",
+    "bytes": 1906,
+    "sourceNode": "I4995:177429;12150:4021;5003:180189"
+  },
+  "imgAgentPlanningCompact": {
+    "path": "/figma-home/a11ff.svg",
+    "bytes": 1740,
+    "sourceNode": "5027:181735"
+  },
+  "imgAgentManagementCompact": {
+    "path": "/figma-home/ded6f.svg",
+    "bytes": 6735,
+    "sourceNode": "5027:181735"
+  },
+  "imgAgentOperationsCompact": {
+    "path": "/figma-home/e20a7.svg",
+    "bytes": 1577,
+    "sourceNode": "5027:181735"
   }
 }

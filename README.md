@@ -33,12 +33,15 @@ HiMate/
 ├── package.json              # npm workspace 和统一命令
 ├── package-lock.json         # 唯一依赖锁
 ├── apps/                     # 按平台组织的独立应用
-│   └── desktop-web/          # 当前桌面网页应用
+│   ├── desktop-web/          # 桌面网页应用
+│   └── mobile/               # 独立移动网页应用
 ├── docs/                     # 文档、上下文、决策与验证证据
 └── scripts/governance/        # 仓库级治理检查
 ```
 
-未来独立移动端建议放在 `apps/mobile/`，本轮尚未创建或预设技术栈。当前桌面网页的响应式适配继续在 `desktop-web/` 内维护。根命令当前默认针对桌面网页，新增应用后需补充相应命令和质量检查。
+独立移动应用位于 `apps/mobile/`，沿用 React / TypeScript / Vite / Tailwind / Base UI。桌面窄屏适配继续在 desktop-web 内维护。根默认命令仍针对桌面，根 gate 验证双端。
+
+移动开发：`npm run dev:mobile`（http://127.0.0.1:5174/）；构建：`npm run build:mobile`；检查：`npm run gate:mobile`；构建预览：`npm run preview:mobile`（4174）。依赖统一在根目录 `npm ci` 安装。
 
 ## 换一个 Agent 继续工作
 
@@ -57,3 +60,7 @@ HiMate/
 支持企业制度查询、会议纪要、项目周报和业务分析四类本地剧本，包含执行反馈、多轮对话和产物预览。新对话页参照 Figma，包含报表、应用、智能体、学习和资讯入口。
 
 所有制度、资料、数字和资讯均为示例，未接真实模型、企业系统或实时资讯；附件仅展示元数据，不解析正文。对话只保留在页面内存中，刷新后重置。已知限制与最近验证结果见 [当前上下文](docs/context/current.md)。
+
+## 移动预览模式
+
+移动服务默认地址显示宿主容器，添加 `?preview=web` 查看纯HiMate网页。5174被其他项目占用时，运行 `npm run dev:mobile -- --port 5175`：宿主预览 http://127.0.0.1:5175/ ，纯网页 http://127.0.0.1:5175/?preview=web 。不关闭其他项目服务。

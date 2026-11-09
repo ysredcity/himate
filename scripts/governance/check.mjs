@@ -21,6 +21,8 @@ const required = [
   'docs/decisions/0002-platform-specific-app-directories.md',
   'docs/archive/README.md', 'docs/reference/UED-员工智能工作台V1.0.md',
   'docs/figma/asset-manifest.json',
+  'apps/mobile/package.json', 'apps/mobile/index.html', 'apps/mobile/vite.config.ts',
+  'apps/mobile/src/App.tsx', 'apps/mobile/scripts/check-tokens.mjs',
   'apps/desktop-web/package.json', 'apps/desktop-web/index.html', 'apps/desktop-web/vite.config.ts',
   'apps/desktop-web/tsconfig.json', 'apps/desktop-web/components.json', 'apps/desktop-web/src/App.tsx',
   'apps/desktop-web/scripts/agent-ux/check-scripts.mjs', 'apps/desktop-web/scripts/agent-ux/check-tokens.mjs',
@@ -38,6 +40,17 @@ function readJson(path) {
 const repo = readJson('package.json')
 const app = readJson('apps/desktop-web/package.json')
 const lock = readJson('package-lock.json')
+const mobile = readJson('apps/mobile/package.json')
+if (mobile?.name !== '@himate/mobile' || mobile?.private !== true) fail('移动端必须为 private @himate/mobile。')
+for (const command of ['dev','build','gate','preview']) {
+  if (!repo?.scripts?.[`${command}:mobile`]?.includes(`npm run ${command} --workspace @himate/mobile`)) fail(`缺少移动端 ${command} 转发。`)
+}
+for (const command of ['lint','check:tokens','build']) {
+  if (!mobile?.scripts?.gate?.includes(`npm run ${command}`)) fail(`移动端 gate 未覆盖 ${command}。`)
+}
+if (lock?.packages?.['apps/mobile']?.name !== '@himate/mobile') fail('移动端 workspace 未进入根 lockfile。')
+if (existsSync(resolve(root,'apps/mobile/package-lock.json'))) fail('移动端不得维护独立 lockfile。')
+
 if (repo) {
   if (repo.private !== true || !repo.workspaces?.includes('apps/*')) fail('根 package.json 必须是包含 apps/* 的 private npm workspace。')
   if (Object.keys(repo.dependencies ?? {}).length || Object.keys(repo.devDependencies ?? {}).length) fail('应用依赖应在 apps/desktop-web/package.json 声明，根目录仅负责治理和命令编排。')
@@ -45,7 +58,7 @@ if (repo) {
     if (!repo.scripts?.[command]?.includes(`npm run ${command} --workspace @himate/desktop-web`)) fail(`根 ${command} 未转发至 @himate/desktop-web。`)
   }
   if (repo.scripts?.['check:governance'] !== 'node scripts/governance/check.mjs') fail('根 check:governance 入口不一致。')
-  if (repo.scripts?.gate !== 'npm run check:governance && npm run gate --workspace @himate/desktop-web') fail('根 gate 必须先验证治理，再运行桌面网页 gate。')
+  if (repo.scripts?.gate !== 'npm run check:governance && npm run gate --workspace @himate/desktop-web && npm run gate:mobile') fail('根 gate 必须先验证治理，再运行桌面网页及移动端 gate。')
 }
 if (app) {
   if (app.name !== '@himate/desktop-web' || app.private !== true) fail('应用包必须为 private @himate/desktop-web。')

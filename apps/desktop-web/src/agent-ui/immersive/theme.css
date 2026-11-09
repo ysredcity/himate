@@ -66,6 +66,10 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+  --shadow-platform-toolbar: 0 1px 10px --alpha(var(--color-black) / 6%);
+  --shadow-home-card-hover: 0 8px 28px -4px --alpha(var(--foreground) / 10%), 0 2px 8px -2px --alpha(var(--foreground) / 4%);
+  --shadow-agent-platform: inset 0 1px 24px var(--background);
+  --shadow-agent-list: 0 2px 8px --alpha(var(--info) / 15%);
 }
 
 :root {

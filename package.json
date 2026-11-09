@@ -16,7 +16,11 @@
     "check:governance": "node scripts/governance/check.mjs",
     "check:scripts": "npm run check:scripts --workspace @himate/desktop-web",
     "check:tokens": "npm run check:tokens --workspace @himate/desktop-web",
-    "gate": "npm run check:governance && npm run gate --workspace @himate/desktop-web",
-    "preview": "npm run preview --workspace @himate/desktop-web --"
+    "gate": "npm run check:governance && npm run gate --workspace @himate/desktop-web && npm run gate:mobile",
+    "preview": "npm run preview --workspace @himate/desktop-web --",
+    "dev:mobile": "npm run dev --workspace @himate/mobile --",
+    "build:mobile": "npm run build --workspace @himate/mobile",
+    "gate:mobile": "npm run gate --workspace @himate/mobile",
+    "preview:mobile": "npm run preview --workspace @himate/mobile --"
   }
 }

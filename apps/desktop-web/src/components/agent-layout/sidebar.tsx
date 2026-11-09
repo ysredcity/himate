@@ -2,12 +2,15 @@ import { useRef, useState, type ComponentType, type ReactNode } from "react"
 import {
   ChevronRight,
   IndentDecrease,
+  IndentIncrease,
+  MessagesSquare,
   Moon,
   MoreHorizontal,
   Pencil,
   Pin,
   PinOff,
   Sun,
+  Trash2,
   X,
 } from "lucide-react"
 
@@ -30,6 +33,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Spinner } from "@/components/ui/spinner"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
@@ -89,8 +93,11 @@ type AgentSidebarProps = {
   onClose?: () => void
   onCollapse: () => void
   onDarkModeChange: (darkMode: boolean) => void
+  onOpenExperts: () => void
+  expertsActive?: boolean
   onNewChat: () => void
   onPinnedChange: (conversation: Conversation, pinned: boolean) => void
+  onDelete: (conversation: Conversation) => void
   onRename: (conversation: Conversation) => void
   onSelectConversation: (conversation: Conversation) => void
   pinnedConversations: Conversation[]
@@ -102,6 +109,7 @@ export type ConversationHistoryListProps = {
   activeConversationId?: string | null
   conversations: Conversation[]
   onPinnedChange?: (conversation: Conversation, pinned: boolean) => void
+  onDelete?: (conversation: Conversation) => void
   onRename?: (conversation: Conversation) => void
   onSelectConversation: (conversation: Conversation) => void
   pinnedConversations: Conversation[]
@@ -138,7 +146,10 @@ export function AgentSidebar({
   onCollapse,
   onDarkModeChange,
   onNewChat,
+  onOpenExperts,
+  expertsActive,
   onPinnedChange,
+  onDelete,
   onRename,
   onSelectConversation,
   pinnedConversations,
@@ -165,7 +176,7 @@ export function AgentSidebar({
       >
         {/* 产品身份与对话流里的智能体身份共用同一头像与名称 */}
         <div className="flex min-w-0 flex-1 items-center gap-2 text-sidebar-accent-foreground">
-          <AgentAvatar productAvatar={config.identity.avatar} className="size-7 [&_svg]:size-4" />
+          <AgentAvatar productAvatar={config.identity.avatar} className="size-7 [&_svg]:size-5" />
           <span className={cn("truncate font-semibold", drawer ? "text-lg tracking-[-0.18px]" : "text-base")}>
             HiMate
           </span>
@@ -199,7 +210,8 @@ export function AgentSidebar({
                 icon={navigationIcons[item.visualKey]}
                 label={item.label}
                 outline={item.id === "new-conversation"}
-                onClick={item.id === "new-conversation" ? onNewChat : undefined}
+                active={item.id === "capability-hub" && expertsActive}
+                onClick={item.id === "new-conversation" ? onNewChat : item.id === "capability-hub" ? onOpenExperts : undefined}
               />
             ))}
           </SidebarMenu>
@@ -209,7 +221,7 @@ export function AgentSidebar({
           activeConversationId={activeConversationId}
           conversations={conversations}
           onPinnedChange={onPinnedChange}
-          onRename={onRename}
+          onDelete={onDelete} onRename={onRename}
           onSelectConversation={onSelectConversation}
           pinnedConversations={pinnedConversations}
           readConversationIds={readConversationIds}
@@ -252,6 +264,7 @@ export function ConversationHistoryList({
   activeConversationId = null,
   conversations,
   onPinnedChange = () => undefined,
+  onDelete,
   onRename = () => undefined,
   onSelectConversation,
   pinnedConversations,
@@ -277,10 +290,10 @@ export function ConversationHistoryList({
   return (
     <div className="flex min-h-0 w-full flex-col">
       {pinnedConversations.length > 0 && (
-        <ConversationGroup drawer={drawer} label="已置顶" open={pinnedOpen} onOpenChange={setPinnedOpen} conversations={pinnedConversations} onPinnedChange={onPinnedChange} onRename={onRename} onSelectConversation={onSelectConversation} activeConversationId={activeConversationId} readConversationIds={readConversationIds} pinned />
+        <ConversationGroup drawer={drawer} label="已置顶" open={pinnedOpen} onOpenChange={setPinnedOpen} conversations={pinnedConversations} onPinnedChange={onPinnedChange} onDelete={onDelete} onRename={onRename} onSelectConversation={onSelectConversation} activeConversationId={activeConversationId} readConversationIds={readConversationIds} pinned />
       )}
       {conversations.length > 0 && (
-        <ConversationGroup drawer={drawer} label="对话" open={conversationsOpen} onOpenChange={setConversationsOpen} conversations={conversations} onPinnedChange={onPinnedChange} onRename={onRename} onSelectConversation={onSelectConversation} activeConversationId={activeConversationId} readConversationIds={readConversationIds} />
+        <ConversationGroup drawer={drawer} label="对话" open={conversationsOpen} onOpenChange={setConversationsOpen} conversations={conversations} onPinnedChange={onPinnedChange} onDelete={onDelete} onRename={onRename} onSelectConversation={onSelectConversation} activeConversationId={activeConversationId} readConversationIds={readConversationIds} />
       )}
     </div>
   )
@@ -292,18 +305,21 @@ function PrimaryMenuItem({
   label,
   onClick,
   outline = false,
+  active = false,
 }: {
   drawer?: boolean
   icon: ComponentType<{ className?: string }>
   label: string
   onClick?: () => void
   outline?: boolean
+  active?: boolean
 }) {
   return (
     <SidebarMenuItem className={cn(drawer && "mb-0.5")}>
       <SidebarMenuButton
+        isActive={active}
         className={cn(
-          "h-9 rounded-[10px] px-2 text-sm font-medium text-sidebar-accent-foreground data-active:border data-active:border-sidebar-border data-active:bg-card data-active:shadow-xs",
+          "h-9 rounded-[10px] px-2 text-sm font-medium text-sidebar-accent-foreground data-active:bg-sidebar-accent",
           outline && "border border-sidebar-border bg-card shadow-xs hover:bg-sidebar-accent",
           drawer && "h-10 px-2.5 text-base [&_svg]:size-[18px]",
           drawer && outline && "mb-2 h-12 justify-center rounded-full",
@@ -324,6 +340,7 @@ function ConversationGroup({
   label,
   onOpenChange,
   onPinnedChange,
+  onDelete,
   onRename,
   onSelectConversation,
   readConversationIds,
@@ -336,6 +353,7 @@ function ConversationGroup({
   label: string
   onOpenChange: (open: boolean) => void
   onPinnedChange: (conversation: Conversation, pinned: boolean) => void
+  onDelete?: (conversation: Conversation) => void
   onRename: (conversation: Conversation) => void
   onSelectConversation: (conversation: Conversation) => void
   readConversationIds: Set<string>
@@ -355,7 +373,7 @@ function ConversationGroup({
                 drawer={drawer}
                 pinned={pinned}
                 onPinnedChange={onPinnedChange}
-                onRename={onRename}
+                onDelete={onDelete} onRename={onRename}
                 onSelectConversation={onSelectConversation}
                 active={conversation.id === activeConversationId}
                 unread={Boolean(conversation.unread && !readConversationIds.has(conversation.id))}
@@ -373,8 +391,10 @@ function ConversationMenuItem({
   conversation,
   drawer,
   onPinnedChange,
+  onDelete,
   onRename,
   onSelectConversation,
+  onMenuOpenChange,
   pinned,
   unread,
 }: {
@@ -382,8 +402,11 @@ function ConversationMenuItem({
   conversation: Conversation
   drawer: boolean
   onPinnedChange: (conversation: Conversation, pinned: boolean) => void
+  onDelete?: (conversation: Conversation) => void
   onRename: (conversation: Conversation) => void
   onSelectConversation: (conversation: Conversation) => void
+  /** 悬停窗口内需要知道「更多」菜单是否打开，菜单打开期间窗口不能被悬停离开关闭 */
+  onMenuOpenChange?: (open: boolean) => void
   pinned: boolean
   unread: boolean
 }) {
@@ -455,7 +478,7 @@ function ConversationMenuItem({
         </SidebarMenuBadge>
       )}
 
-      <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
+      <DropdownMenu open={menuOpen} onOpenChange={(open) => { setMenuOpen(open); onMenuOpenChange?.(open) }}>
         <Tooltip>
           <TooltipTrigger
             render={
@@ -484,8 +507,207 @@ function ConversationMenuItem({
             {pinned ? <PinOff /> : <Pin />}
             {pinned ? "取消置顶" : "置顶"}
           </DropdownMenuItem>
+          {onDelete && <DropdownMenuItem variant="destructive" onClick={() => onDelete(conversation)}><Trash2 />删除对话</DropdownMenuItem>}
         </DropdownMenuContent>
       </DropdownMenu>
     </SidebarMenuItem>
+  )
+}
+
+type AgentSidebarRailProps = Omit<AgentSidebarProps, "drawer" | "onClose" | "onCollapse"> & {
+  onExpand: () => void
+}
+
+/** 列表里是否有需要用户留意的对话：未读完成、等待回复或等待批准。 */
+function hasAttention(items: Conversation[], readConversationIds: Set<string>) {
+  return items.some((item) =>
+    (item.unread && !readConversationIds.has(item.id)) || item.waitingForReply || item.approvalStatus === "pending",
+  )
+}
+
+const railButtonClass =
+  "relative grid size-9 shrink-0 place-items-center rounded-[10px] text-sidebar-accent-foreground outline-none transition-colors hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-sidebar-ring data-active:bg-sidebar-accent data-popup-open:bg-sidebar-accent [&_svg]:size-4"
+
+/**
+ * 折叠态导航：只保留图标。主导航项点击直达，Tooltip 显示名称；
+ * 「已置顶」「对话」各收成一个图标，悬停或点击在右侧打开对话列表窗口。
+ */
+export function AgentSidebarRail({
+  config,
+  activeConversationId,
+  className,
+  darkMode,
+  expertsActive,
+  onExpand,
+  onDarkModeChange,
+  onNewChat,
+  onOpenExperts,
+  onPinnedChange,
+  onDelete,
+  onRename,
+  onSelectConversation,
+  pinnedConversations,
+  conversations,
+  readConversationIds,
+}: AgentSidebarRailProps) {
+  const groupProps = { activeConversationId, onPinnedChange, onDelete, onRename, onSelectConversation, readConversationIds }
+
+  return (
+    <nav
+      aria-label="主导航"
+      className={cn("flex h-full w-13 shrink-0 flex-col items-center border-r border-sidebar-border bg-sidebar text-sidebar-foreground", className)}
+    >
+      <div className="flex h-13 shrink-0 items-center">
+        <RailTooltipButton label="展开导航" onClick={onExpand}><IndentIncrease /></RailTooltipButton>
+      </div>
+
+      <div className="flex min-h-0 flex-1 flex-col items-center gap-0.5 overflow-y-auto py-2">
+        {config.navigation.map((item) => {
+          const Icon = navigationIcons[item.visualKey]
+          return (
+            <RailTooltipButton
+              key={item.id}
+              label={item.label}
+              active={item.id === "capability-hub" && expertsActive}
+              onClick={item.id === "new-conversation" ? onNewChat : item.id === "capability-hub" ? onOpenExperts : undefined}
+            >
+              <Icon />
+            </RailTooltipButton>
+          )
+        })}
+
+        {(pinnedConversations.length > 0 || conversations.length > 0) && (
+          <span aria-hidden className="my-2 h-px w-6 shrink-0 bg-sidebar-border" />
+        )}
+        {pinnedConversations.length > 0 && (
+          <RailConversationPopover label="已置顶" icon={<Pin />} conversations={pinnedConversations} pinned {...groupProps} />
+        )}
+        {conversations.length > 0 && (
+          <RailConversationPopover label="对话" icon={<MessagesSquare />} conversations={conversations} {...groupProps} />
+        )}
+      </div>
+
+      <div className="flex shrink-0 py-3">
+        <RailTooltipButton
+          label={darkMode ? "切换到浅色模式" : "切换到深色模式"}
+          tooltip={darkMode ? "浅色模式" : "深色模式"}
+          onClick={() => onDarkModeChange(!darkMode)}
+        >
+          {darkMode ? <Sun /> : <Moon />}
+        </RailTooltipButton>
+      </div>
+    </nav>
+  )
+}
+
+function RailTooltipButton({ label, tooltip = label, active = false, onClick, children }: {
+  label: string
+  tooltip?: string
+  active?: boolean
+  onClick?: () => void
+  children: ReactNode
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <button
+            type="button"
+            aria-label={label}
+            aria-current={active ? "page" : undefined}
+            data-active={active || undefined}
+            className={railButtonClass}
+            onClick={onClick}
+          >
+            {children}
+          </button>
+        }
+      />
+      <TooltipContent side="right">{tooltip}</TooltipContent>
+    </Tooltip>
+  )
+}
+
+function RailConversationPopover({
+  label,
+  icon,
+  conversations: items,
+  pinned = false,
+  activeConversationId,
+  onPinnedChange,
+  onDelete,
+  onRename,
+  onSelectConversation,
+  readConversationIds,
+}: {
+  label: string
+  icon: ReactNode
+  conversations: Conversation[]
+  pinned?: boolean
+  activeConversationId: string | null
+  onPinnedChange: (conversation: Conversation, pinned: boolean) => void
+  onDelete?: (conversation: Conversation) => void
+  onRename: (conversation: Conversation) => void
+  onSelectConversation: (conversation: Conversation) => void
+  readConversationIds: Set<string>
+}) {
+  const [open, setOpen] = useState(false)
+  // 「更多」菜单渲染在窗口之外：菜单打开期间，指针移入菜单或点击菜单项都不能关闭窗口。
+  const menuOpenRef = useRef(false)
+  const containsActive = items.some((item) => item.id === activeConversationId)
+  const attention = hasAttention(items, readConversationIds)
+
+  return (
+    <Popover
+      open={open}
+      onOpenChange={(next) => {
+        if (!next && menuOpenRef.current) return
+        setOpen(next)
+      }}
+    >
+      <PopoverTrigger
+        openOnHover
+        delay={100}
+        closeDelay={200}
+        aria-label={`${label}（${items.length}）`}
+        data-active={containsActive || undefined}
+        className={railButtonClass}
+      >
+        {icon}
+        {attention && <span aria-hidden className="absolute top-1.5 right-1.5 size-2 rounded-full border border-sidebar bg-destructive" />}
+      </PopoverTrigger>
+      <PopoverContent
+        side="right"
+        align="start"
+        sideOffset={8}
+        className="max-h-[min(560px,calc(100dvh-24px))] w-[280px] gap-1 overflow-y-auto rounded-2xl p-2"
+      >
+        <div className="flex h-8 shrink-0 items-center px-2 text-sm text-muted-foreground">{label}</div>
+        <SidebarMenu>
+          {items.map((conversation) => (
+            <ConversationMenuItem
+              key={conversation.id}
+              conversation={conversation}
+              drawer={false}
+              pinned={pinned}
+              onPinnedChange={onPinnedChange}
+              onDelete={onDelete}
+              onRename={onRename}
+              onSelectConversation={(item) => {
+                setOpen(false)
+                onSelectConversation(item)
+              }}
+              onMenuOpenChange={(menuOpen) => {
+                menuOpenRef.current = menuOpen
+                // 菜单关闭说明本次操作已结束（重命名 / 置顶 / 删除或取消），一并收起窗口。
+                if (!menuOpen) setOpen(false)
+              }}
+              active={conversation.id === activeConversationId}
+              unread={Boolean(conversation.unread && !readConversationIds.has(conversation.id))}
+            />
+          ))}
+        </SidebarMenu>
+      </PopoverContent>
+    </Popover>
   )
 }

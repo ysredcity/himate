@@ -1,0 +1,256 @@
+{
+  "node": "3264:36630",
+  "assets": [
+    {
+      "name": "imgGuideImg",
+      "file": "d548a.png",
+      "bytes": 76068
+    },
+    {
+      "name": "imgAtom",
+      "file": "8836a.svg",
+      "bytes": 3761
+    },
+    {
+      "name": "imgChevronRight",
+      "file": "3cd8a.svg",
+      "bytes": 556
+    },
+    {
+      "name": "imgIcon",
+      "file": "15759.png",
+      "bytes": 4900
+    },
+    {
+      "name": "imgAdv",
+      "file": "ffe19.png",
+      "bytes": 1514141
+    },
+    {
+      "name": "imgAdv1",
+      "file": "33eda.png",
+      "bytes": 208534
+    },
+    {
+      "name": "imgIcon1",
+      "file": "4f5a0.png",
+      "bytes": 35468
+    },
+    {
+      "name": "imgIcon2",
+      "file": "e21dd.png",
+      "bytes": 4809
+    },
+    {
+      "name": "imgIcon3",
+      "file": "6720e.png",
+      "bytes": 6282
+    },
+    {
+      "name": "imgIcon4",
+      "file": "d9092.png",
+      "bytes": 19577
+    },
+    {
+      "name": "imgIcon5",
+      "file": "4f96a.png",
+      "bytes": 6023
+    },
+    {
+      "name": "imgIcon6",
+      "file": "afbe1.png",
+      "bytes": 5526
+    },
+    {
+      "name": "imgGuideImg1",
+      "file": "0fba6.png",
+      "bytes": 95564
+    },
+    {
+      "name": "imgGuideImg2",
+      "file": "d872d.png",
+      "bytes": 66942
+    },
+    {
+      "name": "imgGuideImg3",
+      "file": "02d1a.png",
+      "bytes": 74599
+    },
+    {
+      "name": "imgGuideImg4",
+      "file": "cd3af.png",
+      "bytes": 85990
+    },
+    {
+      "name": "imgIcon7",
+      "file": "6685f.png",
+      "bytes": 5053
+    },
+    {
+      "name": "imgIcon8",
+      "file": "23a43.png",
+      "bytes": 24213
+    },
+    {
+      "name": "imgIcon9",
+      "file": "d2208.png",
+      "bytes": 16664
+    },
+    {
+      "name": "imgIcon10",
+      "file": "34120.png",
+      "bytes": 56261
+    },
+    {
+      "name": "imgIcon11",
+      "file": "cb743.png",
+      "bytes": 29479
+    },
+    {
+      "name": "imgIcon12",
+      "file": "5e502.png",
+      "bytes": 20691
+    },
+    {
+      "name": "imgImage",
+      "file": "2e34c.png",
+      "bytes": 144462
+    },
+    {
+      "name": "imgImage1",
+      "file": "8c4dc.png",
+      "bytes": 153305
+    },
+    {
+      "name": "imgImage2",
+      "file": "f187b.png",
+      "bytes": 116422
+    },
+    {
+      "name": "imgImage3",
+      "file": "e2198.png",
+      "bytes": 154413
+    },
+    {
+      "name": "imgImage4",
+      "file": "e0c90.png",
+      "bytes": 2021600
+    },
+    {
+      "name": "imgImage5",
+      "file": "3d597.png",
+      "bytes": 248387
+    },
+    {
+      "name": "imgImage6",
+      "file": "a4be9.png",
+      "bytes": 333559
+    },
+    {
+      "name": "imgImage7",
+      "file": "74f8f.png",
+      "bytes": 2984816
+    },
+    {
+      "name": "imgImage8",
+      "file": "9897c.png",
+      "bytes": 1157547
+    },
+    {
+      "name": "imgImage9",
+      "file": "421f7.png",
+      "bytes": 1604811
+    },
+    {
+      "name": "imgImage10",
+      "file": "46f43.png",
+      "bytes": 87468
+    },
+    {
+      "name": "imgFeishu",
+      "file": "53a53.png",
+      "bytes": 181105
+    },
+    {
+      "name": "imgCellularConnection",
+      "file": "f5804.svg",
+      "bytes": 1051
+    },
+    {
+      "name": "imgWifi",
+      "file": "f1131.svg",
+      "bytes": 1556
+    },
+    {
+      "name": "imgBattery",
+      "file": "5a05f.svg",
+      "bytes": 1712
+    },
+    {
+      "name": "imgLeft",
+      "file": "91f51.svg",
+      "bytes": 461
+    },
+    {
+      "name": "imgChevronRight1",
+      "file": "29837.svg",
+      "bytes": 547
+    },
+    {
+      "name": "imgSettings2",
+      "file": "b3046.svg",
+      "bytes": 1208
+    },
+    {
+      "name": "imgEye",
+      "file": "91c27.svg",
+      "bytes": 1676
+    },
+    {
+      "name": "imgHistory",
+      "file": "b94d1.svg",
+      "bytes": 1516
+    },
+    {
+      "name": "imgMic",
+      "file": "b2561.svg",
+      "bytes": 1633
+    },
+    {
+      "name": "imgFrame53",
+      "file": "bf6c3.png",
+      "bytes": 419352
+    },
+    {
+      "name": "imgFrame54",
+      "file": "b7bbf.png",
+      "bytes": 402705
+    },
+    {
+      "name": "imgChartLine",
+      "file": "6b48e.svg",
+      "bytes": 1060
+    },
+    {
+      "name": "imgBgInset",
+      "file": "d5862.svg",
+      "bytes": 1446
+    },
+    {
+      "name": "imgMap",
+      "file": "43e97.svg",
+      "bytes": 1758
+    },
+    {
+      "name": "imgPlus",
+      "file": "9c58b.svg",
+      "bytes": 676
+    },
+    {
+      "name": "imgScanLine",
+      "file": "3671b.svg",
+      "bytes": 2120
+    }
+  ],
+  "designWidth": 402
+}

@@ -10,8 +10,11 @@ import { SidebarProvider } from "@/components/ui/sidebar"
 import { Toaster } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { ArtifactPanel } from "./artifact-panel"
+import { ExpertPage } from "./expert-page"
+import { expertCatalog, initialScheduledExpertIds, type Expert } from "./expert-data"
+import { addScheduledExpert, installedExpertIds, removeScheduledExpert, resolveDelegatedExpert, SCHEDULED_EXPERT_LIMIT } from "./expert-rules"
 import { ChatWorkspace } from "./chat-workspace"
-import { AgentSidebar, type Conversation } from "./sidebar"
+import { AgentSidebar, AgentSidebarRail, type Conversation } from "./sidebar"
 import { matchTrigger } from "@/agent-ui/script-engine/match"
 import type { ImmersiveAgentAppProps, ImmersiveConversationMeta, ImmersiveConversationScene, MessageAttachment } from "@/agent-ui/immersive/contracts"
 import { formatTimestamp } from "@/agent-ui/immersive/contracts"
@@ -20,6 +23,7 @@ import { ImageViewer } from "./image-viewer"
 import { panelViewKey, type ArtifactTarget, type ImageView, type PanelTab, type PanelView } from "./panel-types"
 
 const SIDEBAR_WIDTH = 240
+const SIDEBAR_RAIL_WIDTH = 52
 const PANEL_MIN_WIDTH = 320
 const CHAT_MIN_WIDTH = 420
 
@@ -39,14 +43,14 @@ function deriveApprovalStatus(scene: ImmersiveConversationScene | undefined, exp
  * 否则用户会看到一段自己没说过的话，像是发错了对话。
  * 场景 id 需要换成新的，避免与侧栏已有会话的 scene id 冲突。
  */
-function resolveSceneForInput(content: string, scenes: readonly ImmersiveConversationScene[], attachments?: MessageAttachment[]): ImmersiveConversationScene | null {
+function resolveSceneForInput(content: string, scenes: readonly ImmersiveConversationScene[], attachments?: MessageAttachment[], expert?: string): ImmersiveConversationScene | null {
   const matched = matchTrigger(content, scenes)
   if (!matched?.turns.length) return null
   const [first, ...rest] = matched.turns
   return {
     ...matched,
     id: `${matched.id}-${Date.now()}`,
-    turns: [{ ...first, assistant: first.assistant ? { ...first.assistant, timestamp: formatTimestamp() } : undefined, user: { ...first.user, content, timestamp: formatTimestamp(), attachments: attachments?.length ? attachments : first.user.attachments } }, ...rest],
+    turns: [{ ...first, expert, assistant: first.assistant ? { ...first.assistant, timestamp: formatTimestamp() } : undefined, user: { ...first.user, content, timestamp: formatTimestamp(), attachments: attachments?.length ? attachments : first.user.attachments } }, ...rest.map((turn) => ({ ...turn, expert }))],
   }
 }
 
@@ -56,10 +60,16 @@ export function AgentShell({ config, scenes, initialPinnedConversations = [], in
     const scene = scenesById[item.id]
     return { ...item, scene, approvalStatus: deriveApprovalStatus(scene, item.approvalStatus) }
   }
+  const [page, setPage] = useState<"chat" | "experts">("chat")
+  const [homeExpert, setHomeExpert] = useState<string | null>(null)
+  const [scheduledExpertIds, setScheduledExpertIds] = useState<string[]>(initialScheduledExpertIds)
+  const createDelegatedDraftScene: typeof createDraftScene = (content, manualExpert, attachments) =>
+    createDraftScene(content, resolveDelegatedExpert(content, manualExpert, scheduledExpertIds, expertCatalog), attachments)
   const [activeConversation, setActiveConversation] = useState<Conversation | null>(null)
   const [pinnedConversations, setPinnedConversations] = useState<Conversation[]>(() => initialPinnedConversations.map(withDerivedApproval))
   const [conversations, setConversations] = useState<Conversation[]>(() => initialConversations.map(withDerivedApproval))
   const [renamingConversation, setRenamingConversation] = useState<Conversation | null>(null)
+  const [deletingConversation, setDeletingConversation] = useState<Conversation | null>(null)
   const [renameTitle, setRenameTitle] = useState("")
   const [readConversationIds, setReadConversationIds] = useState<Set<string>>(() => new Set())
   const [darkMode, setDarkMode] = useState(false)
@@ -80,7 +90,9 @@ export function AgentShell({ config, scenes, initialPinnedConversations = [], in
   const below740 = useMediaQuery("(max-width: 739px)")
   const below980 = useMediaQuery("(max-width: 979px)")
   const panelOpen = panelTabs.length > 0
-  const sidebarDocked = sidebarOpen && (panelOpen ? !below980 : !below660)
+  // 桌面导航常驻：展开为 240px 完整侧栏，收起为 52px 图标栏；只在窄屏（或产物面板挤占空间时）退为抽屉。
+  const sidebarDocked = panelOpen ? !below980 : !below660
+  const sidebarSpace = sidebarDocked ? (sidebarOpen ? SIDEBAR_WIDTH : SIDEBAR_RAIL_WIDTH) : 0
   const panelFullscreen = panelOpen && (below740 || panelFullscreenRequested)
 
   useEffect(() => {
@@ -194,11 +206,57 @@ export function AgentShell({ config, scenes, initialPinnedConversations = [], in
    * 因此换对话或回到新对话页时必须收起面板，避免残留上一个对话的产物。
    */
   const openConversation = (conversation: Conversation | null) => {
+    setPage("chat")
+    setHomeExpert(null)
     setActiveConversation(conversation)
     setImageView(null)
     setSidebarDrawerOpen(false)
     closePanel(true)
     if (conversation) setReadConversationIds((ids) => new Set(ids).add(conversation.id))
+  }
+
+  const openExpertDirectory = () => {
+    setPage("experts")
+    setSidebarDrawerOpen(false)
+    setImageView(null)
+    closePanel(true)
+  }
+
+  const summonExpert = (expert: Expert) => {
+    if (!expert.canSummon) return
+    openConversation(null)
+    setHomeExpert(expert.name)
+  }
+
+  const addExpertToSchedule = (id: string) => {
+    if (!expertCatalog.some((expert) => expert.id === id)) return
+    const result = addScheduledExpert(scheduledExpertIds, id, expertCatalog)
+    if (result.status === "full") {
+      toast.error(`最多自行安装 ${SCHEDULED_EXPERT_LIMIT} 位专家，请先删除其他已安装专家`)
+      return
+    }
+    if (result.status === "unsupported") {
+      toast.error("该专家不支持召唤，无法安装")
+      return
+    }
+    if (result.status === "duplicate" || result.status === "invalid") return
+    setScheduledExpertIds(result.ids)
+    toast.success("已安装")
+  }
+
+  const deleteConversation = () => {
+    if (!deletingConversation) return
+    const id = deletingConversation.id
+    setPinnedConversations((items) => items.filter((item) => item.id !== id))
+    setConversations((items) => items.filter((item) => item.id !== id))
+    setReadConversationIds((ids) => {
+      const next = new Set(ids)
+      next.delete(id)
+      return next
+    })
+    if (activeConversation?.id === id) openConversation(null)
+    setDeletingConversation(null)
+    toast.success("对话已删除")
   }
 
   const panelProps = {
@@ -212,6 +270,30 @@ export function AgentShell({ config, scenes, initialPinnedConversations = [], in
     onToggleFullscreen: below740 ? undefined : () => setPanelFullscreenRequested((value) => !value),
   }
 
+  // Composer「添加上下文 → 专家」只列已安装专家（含企业默认），随安装 / 删除实时变化。
+  const installedIds = new Set(installedExpertIds(scheduledExpertIds, expertCatalog))
+  const composerConfig = {
+    ...config,
+    composerExpertOptions: expertCatalog.filter((expert) => installedIds.has(expert.id)).map((expert) => expert.name),
+  }
+
+  const dockedSidebarProps = {
+    config,
+    onOpenExperts: openExpertDirectory,
+    expertsActive: page === "experts",
+    activeConversationId: page === "chat" ? activeConversation?.id ?? null : null,
+    darkMode,
+    onDarkModeChange: setDarkMode,
+    onNewChat: () => openConversation(null),
+    onPinnedChange: changePinnedState,
+    onDelete: setDeletingConversation,
+    onRename: startRenaming,
+    onSelectConversation: openConversation,
+    readConversationIds,
+    pinnedConversations,
+    conversations,
+  }
+
   const startResizing = useCallback((event: React.PointerEvent) => {
     event.preventDefault()
     setIsResizing(true)
@@ -220,7 +302,6 @@ export function AgentShell({ config, scenes, initialPinnedConversations = [], in
       const bounds = shellRef.current?.getBoundingClientRect()
       if (!bounds) return
 
-      const sidebarSpace = sidebarDocked ? SIDEBAR_WIDTH : 0
       const maxWidth = Math.max(
         PANEL_MIN_WIDTH,
         bounds.width - sidebarSpace - CHAT_MIN_WIDTH,
@@ -237,7 +318,7 @@ export function AgentShell({ config, scenes, initialPinnedConversations = [], in
 
     window.addEventListener("pointermove", resize)
     window.addEventListener("pointerup", stop)
-  }, [sidebarDocked])
+  }, [sidebarSpace])
 
   return (
     <>
@@ -253,33 +334,28 @@ export function AgentShell({ config, scenes, initialPinnedConversations = [], in
             isResizing && "cursor-col-resize select-none",
           )}
         >
-        {!((panelOpen ? below980 : below660)) && (
+        {sidebarDocked && (
           <div
-            aria-hidden={!sidebarOpen || panelFullscreen || sidebarDrawerOpen}
-            inert={!sidebarOpen || panelFullscreen || sidebarDrawerOpen || undefined}
+            aria-hidden={panelFullscreen || sidebarDrawerOpen || undefined}
+            inert={panelFullscreen || sidebarDrawerOpen || undefined}
             className={cn(
               "shrink-0 overflow-hidden transition-[width] duration-200 ease-out motion-reduce:transition-none",
-              sidebarOpen ? "w-60" : "w-0",
+              sidebarOpen ? "w-60" : "w-13",
             )}
           >
-            <AgentSidebar
-              config={config}
-              activeConversationId={activeConversation?.id ?? null}
-              darkMode={darkMode}
-              onCollapse={() => setSidebarOpen(false)}
-              onDarkModeChange={setDarkMode}
-              onNewChat={() => openConversation(null)}
-              onPinnedChange={changePinnedState}
-              onRename={startRenaming}
-              onSelectConversation={openConversation}
-              readConversationIds={readConversationIds}
-              pinnedConversations={pinnedConversations}
-              conversations={conversations}
-              className={cn(
-                "transition-[transform,opacity] duration-200 ease-out motion-reduce:transition-none",
-                sidebarOpen ? "translate-x-0 opacity-100" : "-translate-x-4 opacity-0 pointer-events-none",
-              )}
-            />
+            {sidebarOpen ? (
+              <AgentSidebar
+                {...dockedSidebarProps}
+                onCollapse={() => setSidebarOpen(false)}
+                className="animate-in fade-in-0 duration-200 motion-reduce:animate-none"
+              />
+            ) : (
+              <AgentSidebarRail
+                {...dockedSidebarProps}
+                onExpand={() => setSidebarOpen(true)}
+                className="animate-in fade-in-0 duration-200 motion-reduce:animate-none"
+              />
+            )}
           </div>
         )}
 
@@ -291,20 +367,30 @@ export function AgentShell({ config, scenes, initialPinnedConversations = [], in
             sidebarDrawerOpen && !panelFullscreen && "translate-x-80",
           )}
         >
-          <ChatWorkspace
+          {page === "experts" ? <ExpertPage
+            scheduledIds={scheduledExpertIds}
+            isSidebarDocked={sidebarDocked}
+            onOpenSidebar={() => { if (below660) setSidebarDrawerOpen(true); else setSidebarOpen(true) }}
+            onAdd={addExpertToSchedule}
+            onRemove={(id) => setScheduledExpertIds((ids) => removeScheduledExpert(ids, id, expertCatalog))}
+            onSummon={summonExpert}
+          /> : <ChatWorkspace
+            initialExpert={homeExpert}
             onSceneChange={(conversation, scene) => {
               const update = (items: Conversation[]) => items.map((item) => item.id === conversation.id ? { ...item, scene } : item)
               setConversations(update)
               setPinnedConversations(update)
               setActiveConversation((current) => current?.id === conversation.id ? { ...current, scene } : current)
             }}
-            config={config}
-            createDraftScene={createDraftScene}
+            config={composerConfig}
+            onBrowseExperts={openExpertDirectory}
+            createDraftScene={createDelegatedDraftScene}
             activeConversation={activeConversation}
             isSidebarDocked={sidebarDocked}
             onNewChat={() => openConversation(null)}
             onPinnedChange={changePinnedState}
-            onRename={startRenaming}
+            onDelete={setDeletingConversation}
+              onRename={startRenaming}
             activeConversationPinned={activeConversationPinned}
             onOpenArtifact={openArtifact}
             onApprovalStatusChange={updateApprovalStatus}
@@ -313,10 +399,11 @@ export function AgentShell({ config, scenes, initialPinnedConversations = [], in
               else setSidebarOpen(true)
             }}
             onStartConversation={(message, context) => {
-              const { attachments, content, expert } = splitSentContext(message, context)
+              const { attachments, content, expert: manualExpert } = splitSentContext(message, context)
+              const expert = resolveDelegatedExpert(content, manualExpert, scheduledExpertIds, expertCatalog)
               // 标题去掉内联标签标记，只保留可读文本
               const title = content.replace(/\[\[[^:\]]+:([^\]]+)\]\]/g, "$1").trim() || attachments[0]?.name || context[0]?.label || "新对话"
-              const scene = resolveSceneForInput(content, scenes, attachments) ?? createDraftScene(content, expert, attachments)
+              const scene = resolveSceneForInput(content, scenes, attachments, expert) ?? createDraftScene(content, expert, attachments)
               const newConversation: Conversation = {
                 id: `draft-${Date.now()}`,
                 title: title.slice(0, 36),
@@ -330,7 +417,7 @@ export function AgentShell({ config, scenes, initialPinnedConversations = [], in
             }}
             panelOpen={panelOpen}
             panelAtDefaultSplit={panelOpen && panelWidth === null}
-          />
+          />}
 
           {panelOpen && !panelFullscreen && (
             <div
@@ -385,7 +472,9 @@ export function AgentShell({ config, scenes, initialPinnedConversations = [], in
           >
             <AgentSidebar
               config={config}
-              activeConversationId={activeConversation?.id ?? null}
+              onOpenExperts={openExpertDirectory}
+              expertsActive={page === "experts"}
+              activeConversationId={page === "chat" ? activeConversation?.id ?? null : null}
               darkMode={darkMode}
               drawer
               onClose={() => setSidebarDrawerOpen(false)}
@@ -396,6 +485,7 @@ export function AgentShell({ config, scenes, initialPinnedConversations = [], in
                 setSidebarDrawerOpen(false)
               }}
               onPinnedChange={changePinnedState}
+              onDelete={setDeletingConversation}
               onRename={startRenaming}
               onSelectConversation={(conversation) => {
                 openConversation(conversation)
@@ -435,6 +525,18 @@ export function AgentShell({ config, scenes, initialPinnedConversations = [], in
                 <Button type="submit" className="h-9 min-w-18" disabled={!renameTitle.trim()}>确认</Button>
               </DialogFooter>
             </form>
+          </DialogContent>
+        </Dialog>
+        <Dialog open={Boolean(deletingConversation)} onOpenChange={(open) => { if (!open) setDeletingConversation(null) }}>
+          <DialogContent className="rounded-2xl sm:max-w-[400px]">
+            <DialogHeader>
+              <DialogTitle>删除对话？</DialogTitle>
+              <DialogDescription className="break-words">确认删除“{deletingConversation?.title}”？删除后将从本次演示的对话列表移除。</DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <DialogClose render={<Button variant="outline" />}>取消</DialogClose>
+              <Button variant="destructive" onClick={deleteConversation}>删除对话</Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
         {/* 用 src 作为挂载 key，切换图片时自然回到默认缩放 */}

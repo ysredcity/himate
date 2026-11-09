@@ -17,6 +17,7 @@ type ConversationSectionProps = {
   initialDraft?: string
   onApprovalDecision?: (status: "approved" | "rejected") => void
   onOpenArtifact: (target: ArtifactTarget) => void
+  onBrowseExperts?: () => void
   onProductBlockAction?: (action: ProductBlockAction) => void
   renderProductBlock?: ProductBlockRenderer
   onSceneChange?: (scene: ConversationScene) => void
@@ -39,6 +40,7 @@ export function ConversationSection({
   initialDraft = "",
   onApprovalDecision,
   onOpenArtifact,
+  onBrowseExperts,
   onProductBlockAction,
   renderProductBlock,
   scene,
@@ -74,6 +76,7 @@ export function ConversationSection({
           disabled={awaitingApproval || running}
           expertOptions={composerExpertOptions}
           expertVisualKeys={composerExpertVisualKeys}
+          onBrowseExperts={onBrowseExperts}
           showConnectorSelect={showConnectorSelect}
           draft={composerDraft}
           onDraftChange={setComposerDraft}

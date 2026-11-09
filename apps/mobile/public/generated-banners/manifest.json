@@ -1,0 +1,13 @@
+{
+  "source": "imagegen; AI-generated fictional demo news imagery",
+  "assets": [
+    {
+      "file": "smart-living.png",
+      "bytes": 2287724
+    },
+    {
+      "file": "smart-manufacturing.png",
+      "bytes": 2025744
+    }
+  ]
+}

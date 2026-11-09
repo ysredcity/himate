@@ -4,5 +4,6 @@
 
 - `template-workbuddy/`：从初始沉浸式模板复制来的旧 Agent 记忆，内容涉及 2026 年 8–9 月其他工程的部署链接和处理方式。其发布目标、跳过类型检查建议、目录约定不能用于当前 HiMate。
 - [迁移前 README](pre-governance-readme.md)：2026-10-21 拆分目录之前的说明，旧路径仅用于历史对照。
+- [2026-11-08 上下文日志](context-2026-11-08/current.md)（及同目录 [handoff](context-2026-11-08/handoff.md)）：桌面专家目录与移动端 Agent 模式开发期间逐轮追加的完整记录，开启桌面专项对话前归档；当前事实以 `docs/context/` 为准。
 
 当前规则见 [AGENTS.md](../../AGENTS.md)，部署和运行状态见 [当前上下文](../context/current.md)。

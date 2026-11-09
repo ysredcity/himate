@@ -13,7 +13,7 @@
 
 - `apps/`：独立应用的统一容器。
 - `apps/desktop-web/`：当前桌面网页应用，包含它的源码、静态资源、构建配置及质量脚本。
-- 未来独立移动端建议使用 `apps/mobile/`，技术栈届时确定；当前网页的窄屏适配仍属于 desktop-web，不等同于独立移动应用。
+- 独立移动网页应用位于 `apps/mobile/`；桌面网页的窄屏适配仍属于 desktop-web，与独立移动应用分开维护。
 - `docs/`：治理、架构、设计、上下文、决策、参考材料与验证截图。
 - `scripts/governance/`：仓库级治理检查，不放产品业务逻辑。
 - 根目录：共享入口、CHANGELOG、npm workspace 配置及唯一 lockfile。

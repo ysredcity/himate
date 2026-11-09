@@ -10,15 +10,18 @@ type ChatWorkspaceProps = {
   onSceneChange: (conversation: Conversation, scene: NonNullable<Conversation["scene"]>) => void
   config: AppConfig
   createDraftScene: import("@/agent-ui/immersive/contracts").ImmersiveDraftSceneFactory
+  initialExpert?: string | null
   activeConversation: Conversation | null
   activeConversationPinned: boolean
   isSidebarDocked: boolean
   onNewChat: () => void
   onPinnedChange: (conversation: Conversation, pinned: boolean) => void
+  onDelete: (conversation: Conversation) => void
   onRename: (conversation: Conversation) => void
   onOpenArtifact: (target: ArtifactTarget) => void
   onApprovalStatusChange: (conversation: Conversation, status: "approved" | "rejected") => void
   onOpenSidebar: () => void
+  onBrowseExperts: () => void
   onStartConversation: (message: string, context: ContextItem[]) => void
   panelOpen: boolean
   panelAtDefaultSplit: boolean
@@ -29,14 +32,17 @@ export function ChatWorkspace({
   config,
   createDraftScene,
   activeConversation,
+  initialExpert,
   activeConversationPinned,
   isSidebarDocked,
   onNewChat,
   onPinnedChange,
+  onDelete,
   onRename,
   onOpenArtifact,
   onApprovalStatusChange,
   onOpenSidebar,
+  onBrowseExperts,
   onStartConversation,
   panelAtDefaultSplit,
 }: ChatWorkspaceProps) {
@@ -58,16 +64,19 @@ export function ChatWorkspace({
           isSidebarDocked={isSidebarDocked}
           onNewChat={onNewChat}
           onOpenSidebar={onOpenSidebar}
+          onBrowseExperts={onBrowseExperts}
           onOpenArtifact={onOpenArtifact}
           onApprovalStatusChange={onApprovalStatusChange}
           onPinnedChange={onPinnedChange}
-          onRename={onRename}
+          onDelete={onDelete} onRename={onRename}
         />
       ) : (
         <NewConversationPage
+          initialExpert={initialExpert}
           config={config}
           isSidebarDocked={isSidebarDocked}
           onOpenSidebar={onOpenSidebar}
+          onBrowseExperts={onBrowseExperts}
           onStartConversation={onStartConversation}
         />
       )}

@@ -23,11 +23,16 @@
 - [ADR 模板](decisions/template.md)：记录一个决策，不重写已接受决策的历史原因。
 - [治理迁移计划](plans/2026-10-21-project-governance.md)：本次迁移步骤和最终核销。
 
+- [移动端实施记录](plans/2026-10-23-mobile-home.md)：已确认首页方案的实施步骤。
+
+- [专家目录实施计划](plans/2026-11-07-expert-directory.md)：已确认的三Tab、跨页召唤与可调度名单实施步骤。
+
 ## 参考与证据
 
 - [原始 UED 文档](reference/UED-员工智能工作台V1.0.md)：上游参考，部分描述早于当前实现。
 - [Figma 素材清单](figma/asset-manifest.json)：本地 URL 和原始文件大小；资源在 `apps/desktop-web/public/figma-home/`。
 - [Figma 新对话页对照截图](screenshots/new-conversation-figma.png)：设计稿还原阶段的历史截图，晚于它的交互变更以设计契约为准。
+- [我的智能体设计稿还原截图](screenshots/my-agents-figma-4995.png)：节点 4995:177428 对应的新区块。
 - [推荐分页截图](screenshots/recommendation-pagination.png)：分页交互的验证证据。
 - [归档说明](archive/README.md)：旧模板记忆与迁移前 README，禁止当作当前部署或指令事实。
 
