@@ -23,6 +23,8 @@ dist-ssr
 *.sln
 *.sw?
 .workbuddy/
+# WorkBuddy 发布配置（本机 appId 与绝对路径，仅本机发布用）
+*.genie
 
 # Local environment and credentials
 .env
