@@ -4,6 +4,24 @@
 - 状态：完成（桌面左侧导航收起形态改为图标栏）
 - 本轮目标：③ Composer 专家菜单只列已安装并加「查看更多专家」。① 增加「专家」入口后，左侧导航收起时不再完全隐藏，改为只保留图标；已置顶、对话各一个图标，悬停在右侧打开对话列表窗口。② 预置对话的 L3 步骤补充过程文本。
 
+## 第十一项：Banner 翻页按钮修复
+
+- 根因 1（点击无反应）：Button 默认 `active:translate-y-px` 与定位 `-translate-y-1/2` 共用 translate，按下时按钮下跳 17px，松开在按钮外则无 click。改为外层 `inset-y-0 flex items-center` 容器居中，按钮不再用位移。
+- 根因 2（移出不消失）：`onFocusCapture` 对鼠标点击产生的焦点也置 `focused`。改为 `event.target.matches(":focus-visible")`。
+- 实测：两个按钮各 12 次圆内随机位置点击 24/24 生效；点击后移出透明度 0、pointer-events none；Tab 到「下一条推荐」可见并可回车翻页；gate 通过。随后按用户要求：悬停与深色默认底色改为不透明（popover 底 + muted 渐变叠加，原 hover 为 4% 透明 muted、深色默认为 input/30）。已提交。
+
+## 第十项：专家详情字段
+
+- 按用户截图：详情 Dialog 字段改为「适用角色」（role 按“、”拆为标签）、「专家介绍」（description，原 Header 下的描述改为 sr-only 供读屏）、「更新时间」。`expert-data.ts` 的 Expert 新增 `updatedAt`，15 条均为演示日期。删去场景 / 来源 / 调用方式 / 能力的展示（数据字段保留，筛选、匹配仍在用）。随后按用户要求再调整：名称与更新时间移到头像右侧；适用角色改为纯文本；`ExpertActions` 新增 `size`，详情用 default（按钮 28→32px）；头像 64→48px，名称与更新时间间距 4→8px；详情中安装 / 删除按钮显示文字（`showText`），卡片不变、卡片仍用 sm。实测人事 / 项目推进 / 销售洞察三种按钮组合均 32px、无报错；gate 通过。已提交。
+
+## 第九项：我的专家说明改为 Alert
+
+- `expert-page.tsx` 我的专家顶部由段落改为 Alert（Info + 标题「在智能体管理平台个人空间发布的智能体」），右侧 `AlertAction` 内 link 按钮「前往管理」，垂直居中，无点击动作；删除不再使用的 `introductions` 常量。实测 1280 / 700px 高 38px、无溢出，点击后无变化且无报错；gate 通过。已提交。
+
+## 第八项：已安装 Alert 文案
+
+- `expert-page.tsx` 已安装 Alert 只保留 AlertTitle：「安装后支持自动调度，最多安装20个专家，企业默认安装的专家不占名额且不可删除。」（数字取 `SCHEDULED_EXPERT_LIMIT`），去掉原标题与已用数量；图标改为单行对齐。实测高度 38px、文案一致；gate 通过。已提交。
+
 ## 第七项：Composer 专家头像与专家页一致
 
 - `ExpertAvatar` 新增可选 `src`，有图片时渲染 `<img>`（默认 24px、rounded-md），无图片仍走原图标逻辑。`composer.tsx` 按名称从 `expertCatalog` 取 `avatar`，菜单项与 Chip 均为 20px 圆形（按用户要求由 5px 圆角改为圆形）。
@@ -69,6 +87,7 @@
 
 ## 注意事项
 
+- 2026-11-11（第二次）按用户要求把第八～十一项桌面改动与另一对话完成的移动端改动（等比缩放 ADR 0012、宿主模拟键盘 ADR 0013、专家页与桌面对齐等）一起提交，合并到 `main` 并推送两个分支。
 - 2026-11-11 按用户要求把第五～七项桌面改动与移动端专家目录（另一对话完成）一起提交，合并到 `main` 并推送两个分支；`.ued-tmp/` 加入 `.gitignore`。
 - 2026-11-11 按用户要求把第五～七项桌面改动与移动端专家目录（另一对话完成）一起提交为 `55e93b8`，`main` 与 `feat/home-agents-figma` 同步推送；`.ued-tmp/` 加入 `.gitignore`。
 - 2026-11-09 按用户要求提交并推送：`ea0b263` → `origin/feat/home-agents-figma`（新建远端分支）；随后按用户要求快进合并到 `main` 并推送，未走 PR。本机代理 127.0.0.1:7890 不可用，Git 命令临时绕过代理，未改全局配置。`apps/desktop-web/.wbapp_7UjS5tv1ZodAgwr2UUfpui.genie` 为 WorkBuddy 发布配置，用户决定保留，已加 `*.genie` 到 `.gitignore`。
@@ -99,3 +118,13 @@
 - 2026-11-11 12:10 追加（移动端）：Tab 栏在 expert-page 内覆盖 `bg-background/45`（共享的 glassSurfaceClass 不改），Indicator `bg-foreground/5`。402×874 计算样式核对为 0.45 / 0.05，列表滚到栏下方时截图文字可透出且 Tab 文字可读。
 - 2026-11-11 12:35 追加（移动端）：Tab 选中图标填充方案用户认为效果不好，已撤回，恢复线性图标（Store / UserRound / CircleCheckBig）；保留 45% 背景与 5% 选中填充。截图请写到 `/tmp/himate/`（`.ued-tmp` 会被清掉）。
 - 2026-11-11 12:50 追加（移动端）：搜索时保留 Banner；`sidebar.tsx` 导航项 data-active 改 `bg-sidebar-accent`（与对话项一致，影响所有导航项的选中态，当前只有专家入口会被激活）；`mobile-composer.tsx` 已选专家标签按 `expertCatalog` 取头像，`size-5 rounded-full`。402×874 截图核对三处；计算样式：专家入口背景 oklab(0 0 0 / 0.04)、无边框。
+- 2026-11-11 13:05 追加（移动端）：分类手势加 `SWIPE_EDGE_GUARD = 32`（按 window.innerWidth 判断起点）。402×874 触摸模拟：x=10 / 31 / 395 起点不切换，x=40 / 300 正常切换。玻璃兼容性：构建产物已带 -webkit-backdrop-filter；Tailwind v4 本身要求 Safari 16.4+ / Chrome 111+，这些内核都支持 backdrop-filter，待用户给出具体机型与现象再定方案（未改）。
+- 2026-11-11 13:30 追加（移动端）：402 基准等比缩放（ADR 0012）。`vite.config.ts` 内联 PostCSS 插件 px→rem；`html.design-scale` 根字号 `min(100vw,480px)/402*16`，仅 `?preview=web` 添加；`src/lib/design-scale.ts` 提供 `rem()` / `designScale()`。实测 320 / 375 / 402 / 430 尺寸成比例、无横向溢出，宿主 iframe 内 16px。注意：今后行内 style 的尺寸要用 `rem()`；改 vite.config 后 dev server 会自动重启。
+- 2026-11-11 13:45 追加（移动端）：详情 Sheet 字段对齐桌面（未提交的桌面改动：名称 + 更新时间、适用角色 / 专家介绍堆叠）；`expert-data.ts` 重新从桌面逐字复制（含 `updatedAt`）。头像保持移动列表的圆形 56px。截图注意：`/tmp/himate` 需用 `/private/tmp/himate/...` 路径读取。
+- 2026-11-11 13:55 追加（移动端）：我的专家 / 已安装顶部 Alert 对齐桌面未提交改动（`AlertAction` 前往管理、安装规则文案），移除 `personalInstallationCount` 引用。402 / 320 实测：我的专家单行、标题右缘 313 < 按钮左缘 319 不重叠、按钮与图标垂直居中；已安装两行、图标对齐首行。本轮截图读取工具报 ENOENT，以测量为准。
+- 2026-11-11 14:05 追加（移动端）：专家页 section 去掉 `pb-(--host-bottom-inset)`，滚动区 pb = max(host inset, safe-area) + 88px；Tab 栏 `bottom-[max(12px,calc(max(inset,safe-area)-10px))]`、`h-15`。宿主 402×874 实测：滚动区到 iframe 底 786、Tab 栏高 60 距底 24，滚到底最后一行底 640 < Tab 栏顶 702；截图确认 Home Indicator 下透出列表。
+- 2026-11-11 14:15 追加（移动端）：专家页底部渐变遮罩（`bg-linear-to-t from-background to-transparent`，高度 = Tab 栏离底距离 + 60px，pointer-events-none，z-20）。宿主 402×874 实测遮罩顶 702 与 Tab 栏顶对齐、高 84；截图确认底部列表渐隐。
+- 2026-11-11 15:15 追加（移动端）：按住说话 + 专家（`chooseExpert` 语音模式不再切回文字，`expertChip` 两种模式复用）；宿主模拟键盘（ADR 0013，`host-keyboard.tsx`，bridge 新增 KEYBOARD / KEY_INPUT，产品按键处理用 pendingInput ref 防连按竞态）。宿主 402×874 实测：键盘 336、iframe 786→450、输入「hi M」、删除、发送、失焦收起均正常；语音 + 专家与语音 + 图片 + 专家截图核对。
+- 2026-11-11 15:25 追加（移动端）：`exitVoice` 不再聚焦；voice 为真时 effect 清除 focused 并 `reportKeyboard(false)`（InputButton 在 pointerdown 阻止默认，切到语音时 textarea 被卸载而不触发 blur）。宿主实测：聚焦键盘 336 → 点麦克风 0 → 按住说话 0 → 切回键盘输入 0、未聚焦、Composer 单行 56px。
+- 2026-11-11 15:35 追加（移动端）：`expertChip` 改为 `PillButton`（36px、primary-bg、整枚可点移除），专家列表 Sheet `data-[side=bottom]:h-[80dvh]`（与专家详情一致），入口图标 `contextIcons.专家`（Bot）。实测：标签高 36、名称到 X 4px、点击移除；列表面板 699px；入口无已选名称。
+- 2026-11-11 15:50 追加（移动端）：去掉 chooseExpert / 推荐指令选择后的 `focus()`；「+」Sheet `finalFocus` 按打开前是否聚焦（`keyboardBeforePicker` ref）决定是否还给 textarea。宿主实测：键盘关闭时拍照 / 选专家 / 移除专家 / 选推荐指令后仍为 0；键盘打开时移除图片仍 336，打开面板时 0，相册上传 / 选专家 / Esc 关闭后恢复 336。

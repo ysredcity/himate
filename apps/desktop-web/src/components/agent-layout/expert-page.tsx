@@ -2,7 +2,7 @@ import { useRef, useState } from "react"
 import { Tabs } from "@base-ui/react/tabs"
 import { Check, ChevronRight, IndentIncrease, Info, MessageCircle, Plus, Search, Trash2, UsersRound, X } from "lucide-react"
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Alert, AlertAction, AlertTitle } from "@/components/ui/alert"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,7 +11,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { ExpertRecommendationBanner } from "./expert-recommendation-banner"
 import { IconButton } from "./icon-button"
 import { expertCatalog, expertScenes, type Expert } from "./expert-data"
-import { installedExpertIds, personalInstallationCount, SCHEDULED_EXPERT_LIMIT } from "./expert-rules"
+import { installedExpertIds, SCHEDULED_EXPERT_LIMIT } from "./expert-rules"
 
 type ExpertPageProps = {
   scheduledIds: readonly string[]
@@ -31,10 +31,6 @@ function matchesQuery(expert: Expert, query: string) {
   return [expert.name, expert.role, expert.description, expert.scene, ...expert.tags].some((text) => text.toLowerCase().includes(keyword))
 }
 
-const introductions = {
-  mine: "在智能体管理平台个人空间发布的 AI 助手，会在这里汇集。",
-}
-
 export function ExpertPage({ scheduledIds, isSidebarDocked, onOpenSidebar, onAdd, onRemove, onSummon }: ExpertPageProps) {
   const [tab, setTab] = useState<ExpertTab>("market")
   const [scene, setScene] = useState("全部")
@@ -42,7 +38,6 @@ export function ExpertPage({ scheduledIds, isSidebarDocked, onOpenSidebar, onAdd
   const [query, setQuery] = useState("")
   const searchRef = useRef<HTMLInputElement>(null)
   const installedIds = installedExpertIds(scheduledIds, expertCatalog)
-  const personalCount = personalInstallationCount(installedIds, expertCatalog)
   const baseLists = {
     market: expertCatalog.filter((expert) => (scene === "全部" || expert.scene === scene)),
     mine: expertCatalog.filter((expert) => expert.mine),
@@ -76,10 +71,13 @@ export function ExpertPage({ scheduledIds, isSidebarDocked, onOpenSidebar, onAdd
     <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6 max-[659px]:px-4">
       <div className="mx-auto max-w-[1240px]">
           {tabs.map((item) => <Tabs.Panel key={item.id} value={item.id} className="outline-none">
-            {item.id === "mine" && <p className="text-sm leading-6 text-muted-foreground">{introductions.mine}</p>}
-            {item.id === "scheduled" && <Alert>
-              <Info aria-hidden="true" /><AlertTitle>安装说明</AlertTitle>
-              <AlertDescription>可自行安装 {SCHEDULED_EXPERT_LIMIT} 位专家（已用 {personalCount} 位）。企业默认专家不占名额，且不可删除。</AlertDescription>
+            {item.id === "mine" && <Alert className="*:[svg]:row-span-1">
+              <Info aria-hidden="true" /><AlertTitle>在智能体管理平台个人空间发布的智能体</AlertTitle>
+              {/* 演示阶段只占位，不跳转 */}
+              <AlertAction className="top-1/2 right-2.5 -translate-y-1/2"><Button variant="link" size="sm" className="h-auto p-0 text-sm font-medium">前往管理</Button></AlertAction>
+            </Alert>}
+            {item.id === "scheduled" && <Alert className="*:[svg]:row-span-1">
+              <Info aria-hidden="true" /><AlertTitle>安装后支持自动调度，最多安装{SCHEDULED_EXPERT_LIMIT}个专家，企业默认安装的专家不占名额且不可删除。</AlertTitle>
             </Alert>}
             {item.id === "market" && <ExpertRecommendationBanner onSelect={setDetail} />}
             {item.id === "market" && <div className="flex flex-wrap items-center gap-2">
@@ -108,20 +106,28 @@ export function ExpertPage({ scheduledIds, isSidebarDocked, onOpenSidebar, onAdd
     <Dialog open={Boolean(detail)} onOpenChange={(open) => { if (!open) setDetail(null) }}>
       <DialogContent className="max-h-[85dvh] overflow-y-auto rounded-2xl sm:max-w-[520px]">
         {detail && <>
-          <DialogHeader>
-            <img src={detail.avatar} alt="" className="mb-2 size-16 rounded-2xl object-cover" />
-            <DialogTitle>{detail.name}</DialogTitle>
-            <DialogDescription className="leading-6">{detail.description}</DialogDescription>
+          {/* 头像右侧：名称 + 更新时间 */}
+          <DialogHeader className="flex-row items-center gap-3 pr-8">
+            <img src={detail.avatar} alt="" className="size-12 shrink-0 rounded-xl object-cover" />
+            <div className="grid min-w-0 gap-2">
+              <DialogTitle className="truncate">{detail.name}</DialogTitle>
+              <p className="text-xs leading-4 text-muted-foreground">更新时间：{detail.updatedAt}</p>
+            </div>
+            <DialogDescription className="sr-only">{detail.description}</DialogDescription>
           </DialogHeader>
-          <dl className="grid grid-cols-[64px_1fr] gap-x-4 gap-y-3 text-sm">
-            <dt className="text-muted-foreground">适用角色</dt><dd>{detail.role}</dd>
-            <dt className="text-muted-foreground">场景</dt><dd>{detail.scene}</dd>
-            <dt className="text-muted-foreground">来源</dt><dd>{detail.source}{detail.mine && " · 个人空间发布"}</dd>
-            <dt className="text-muted-foreground">调用方式</dt><dd>{detail.canSummon ? "支持直接召唤" : "独立页面入口"}</dd>
-            <dt className="text-muted-foreground">能力</dt><dd className="flex flex-wrap gap-1.5">{detail.tags.map((tag) => <span key={tag} className="rounded bg-muted px-2 py-0.5">{tag}</span>)}</dd>
+          {/* 字段按上下堆叠：标题 14px Medium，内容在下方 */}
+          <dl className="grid gap-4 text-sm">
+            <div className="grid gap-2">
+              <dt className="font-medium">适用角色</dt>
+              <dd className="leading-6 text-muted-foreground">{detail.role}</dd>
+            </div>
+            <div className="grid gap-2">
+              <dt className="font-medium">专家介绍</dt>
+              <dd className="leading-6 text-muted-foreground">{detail.description}</dd>
+            </div>
           </dl>
           <div className="flex justify-end border-t pt-4">
-            <ExpertActions expert={detail} installed={installedIds.includes(detail.id)} removable={tab === "scheduled"} onInstall={() => onAdd(detail.id)} onRemove={() => { onRemove(detail.id); setDetail(null) }} onSummon={() => summon(detail)} />
+            <ExpertActions expert={detail} installed={installedIds.includes(detail.id)} removable={tab === "scheduled"} size="default" onInstall={() => onAdd(detail.id)} onRemove={() => { onRemove(detail.id); setDetail(null) }} onSummon={() => summon(detail)} />
           </div>
         </>}
       </DialogContent>
@@ -146,18 +152,22 @@ function ExpertCard({ expert, scheduled, removable, onDetail, onAdd, onRemove, o
   </article>
 }
 
-function ExpertActions({ expert, installed, removable, onInstall, onRemove, onSummon }: { expert: Expert; installed: boolean; removable: boolean; onInstall: () => void; onRemove: () => void; onSummon: () => void }) {
+/** size：卡片内用 sm，详情对话框用 default（大一号） */
+function ExpertActions({ expert, installed, removable, size = "sm", onInstall, onRemove, onSummon }: { expert: Expert; installed: boolean; removable: boolean; size?: "sm" | "default"; onInstall: () => void; onRemove: () => void; onSummon: () => void }) {
   const canRemove = removable && !expert.enterpriseDefault
   const isInstalled = installed || Boolean(expert.enterpriseDefault)
   const locked = Boolean(expert.enterpriseDefault) || (isInstalled && !canRemove)
   const label = expert.enterpriseDefault ? "企业默认安装" : canRemove ? "删除" : isInstalled ? "已安装" : "安装"
+  // 卡片里未锁定时只显示图标；详情对话框（default）始终显示文字
+  const showText = locked || size === "default"
+  const text = canRemove ? "删除" : isInstalled ? "已安装" : "安装"
   return <div role="group" aria-label={`${expert.name}操作`} className="pointer-events-none relative z-10 mt-auto flex w-full items-center justify-between gap-3">
     {expert.canSummon ? <Tooltip>
       <TooltipTrigger render={<span className="pointer-events-auto inline-flex" tabIndex={locked ? 0 : undefined} aria-label={locked ? `${expert.name}${label}` : undefined} />}>
-        <Button variant="outline" size={locked ? "sm" : "icon-sm"} disabled={locked} aria-label={`${label}${expert.name}`} className={canRemove ? "text-destructive-foreground hover:bg-destructive-bg hover:text-destructive-foreground" : undefined} onClick={locked ? undefined : canRemove ? onRemove : onInstall}>{canRemove ? <Trash2 /> : isInstalled ? <Check /> : <Plus />}{locked && <span>已安装</span>}</Button>
+        <Button variant="outline" size={showText ? size : "icon-sm"} disabled={locked} aria-label={`${label}${expert.name}`} className={canRemove ? "text-destructive-foreground hover:bg-destructive-bg hover:text-destructive-foreground" : undefined} onClick={locked ? undefined : canRemove ? onRemove : onInstall}>{canRemove ? <Trash2 /> : isInstalled ? <Check /> : <Plus />}{showText && <span>{text}</span>}</Button>
       </TooltipTrigger>
       <TooltipContent>{expert.enterpriseDefault ? "企业默认安装，不可删除" : label}</TooltipContent>
     </Tooltip> : <span />}
-    <Button variant={expert.canSummon ? "default" : "secondary"} size="sm" className="pointer-events-auto px-3" aria-label={`${expert.canSummon ? "召唤" : "进入"}${expert.name}`} onClick={expert.canSummon ? onSummon : undefined}>{expert.canSummon ? "召唤" : "进入"}{expert.canSummon ? <MessageCircle aria-hidden="true" data-icon="inline-end" /> : <ChevronRight aria-hidden="true" data-icon="inline-end" />}</Button>
+    <Button variant={expert.canSummon ? "default" : "secondary"} size={size} className={cn("pointer-events-auto", size === "sm" ? "px-3" : "px-4")} aria-label={`${expert.canSummon ? "召唤" : "进入"}${expert.name}`} onClick={expert.canSummon ? onSummon : undefined}>{expert.canSummon ? "召唤" : "进入"}{expert.canSummon ? <MessageCircle aria-hidden="true" data-icon="inline-end" /> : <ChevronRight aria-hidden="true" data-icon="inline-end" />}</Button>
   </div>
 }

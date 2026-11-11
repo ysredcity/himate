@@ -5,6 +5,8 @@ import "./index.css";
 import { HostPreviewLayout } from "./preview/host-preview-layout";
 const standalone =
   new URLSearchParams(window.location.search).get("preview") === "web";
+// 产品页面按 402 基准等比缩放（见 src/lib/design-scale.ts）；宿主预览外壳不缩放
+if (standalone) document.documentElement.classList.add("design-scale");
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     {standalone ? <App /> : <HostPreviewLayout />}

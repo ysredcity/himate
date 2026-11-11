@@ -22,6 +22,7 @@ import { splitSentContext } from "./message-context"
 import { ImageViewer } from "./image-viewer"
 import { embeddedInHost, HOST_BACK, isHostBridgeMessage, readStoredDarkMode, reportBackState, reportTabBar, THEME } from "@/preview/host-bridge"
 import { panelViewKey, type ArtifactTarget, type ImageView, type PanelTab, type PanelView } from "./panel-types"
+import { rem } from "@/lib/design-scale"
 
 const SIDEBAR_WIDTH = 240
 const PANEL_MIN_WIDTH = 320
@@ -360,7 +361,7 @@ export function AgentShell({ config, scenes, initialPinnedConversations = [], in
     <TooltipProvider delay={150}>
       <SidebarProvider
         className="h-dvh min-h-0 min-w-0 overflow-hidden bg-background-mobile min-[660px]:min-w-[420px] md:bg-sidebar"
-        style={{ "--sidebar-width": `${SIDEBAR_WIDTH}px` } as React.CSSProperties}
+        style={{ "--sidebar-width": rem(SIDEBAR_WIDTH) } as React.CSSProperties}
       >
         <main
           ref={shellRef}

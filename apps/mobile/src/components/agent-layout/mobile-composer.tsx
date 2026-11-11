@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react"
-import { ArrowUp, Camera, Check, ChevronLeft, ChevronRight, Image as ImageIcon, Keyboard, Mic, Plus, RotateCcw, Search, Sparkles, X } from "lucide-react"
+import { ArrowUp, Camera, Check, ChevronLeft, ChevronRight, Image as ImageIcon, Keyboard, Mic, Plus, RotateCcw, Search, X } from "lucide-react"
 import { toast } from "sonner"
 
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet"
@@ -7,11 +7,17 @@ import { cn } from "@/lib/utils"
 import type { WelcomeExpert } from "@/agent-ui/immersive/contracts"
 import type { ComposerSendHandler, ContextItem } from "./composer"
 import { ExpertLineIcon, shortExpertLabel } from "./resource-visuals"
+import { PillButton } from "./pill-button"
+import { contextIcons } from "./icon-registry"
 import { ComposerRecommendations, RecommendationItems, type RecommendationCategory } from "./composer-recommendations"
 import { Spinner } from "@/components/ui/spinner"
 import { useInstalledExperts, useOpenExperts } from "./expert-context"
 import { expertCatalog } from "./expert-data"
+import { designScale, rem } from "@/lib/design-scale"
+import { isHostBridgeMessage, KEY_INPUT, reportKeyboard, type HostKey } from "@/preview/host-bridge"
 import { ALBUM_FAIL_ONCE_INDEX, albumSamples, cameraSamples, UPLOAD_DURATION, type UploadSample } from "./upload-samples"
+
+const ExpertEntryIcon = contextIcons.专家
 
 export type MobileComposerProps = {
   /** 全部可选专家，「更多」面板列出全部 */
@@ -78,8 +84,9 @@ export function MobileComposer({ experts, draft, onDraftChange, selectedExpert, 
     const textarea = textareaRef.current
     if (!textarea) return
     textarea.style.height = "auto"
-    const next = Math.min(Math.max(textarea.scrollHeight, LINE_HEIGHT), MAX_TEXTAREA_HEIGHT)
-    textarea.style.height = `${next}px`
+    // 高度常量是 402 基准值：实测 scrollHeight 先换回基准再比较，写回时用 rem 随屏宽缩放
+    const next = Math.min(Math.max(Math.round(textarea.scrollHeight / designScale()), LINE_HEIGHT), MAX_TEXTAREA_HEIGHT)
+    textarea.style.height = rem(next)
     setTextHeight(next)
   }, [draft, expanded, voice])
   // 设计稿：单行 56px；展开 = 描边 2 + 上 15 + 文本 + 下 8 + 操作栏 55（单行文本时为 104px）
@@ -131,6 +138,35 @@ export function MobileComposer({ experts, draft, onDraftChange, selectedExpert, 
     }
   }
 
+  // 宿主模拟键盘：输入框聚焦时弹出，失焦或卸载时收起；按键由宿主发来，插入到光标位置
+  // 连续按键可能早于重新渲染到达，所以用 ref 记录最新草稿与光标，不直接读渲染时的 draft / selection
+  const pendingInput = useRef<{ value: string; caret: number } | null>(null)
+  const keyHandler = useRef<(key: HostKey) => void>(() => {})
+  keyHandler.current = (key) => {
+    const textarea = textareaRef.current
+    if (!textarea || locked || document.activeElement !== textarea) return
+    if (key.kind === "enter") { pendingInput.current = null; void send(); return }
+    const value = pendingInput.current?.value ?? draft
+    const start = pendingInput.current?.caret ?? textarea.selectionStart ?? value.length
+    const end = pendingInput.current?.caret ?? textarea.selectionEnd ?? value.length
+    const from = key.kind === "backspace" && start === end ? Math.max(0, start - 1) : start
+    const next = value.slice(0, from) + (key.kind === "text" ? key.text : "") + value.slice(end)
+    const caret = from + (key.kind === "text" ? key.text.length : 0)
+    pendingInput.current = { value: next, caret }
+    onDraftChange(next)
+    requestAnimationFrame(() => {
+      textarea.setSelectionRange(caret, caret)
+      if (pendingInput.current?.value === next) pendingInput.current = null
+    })
+  }
+  useEffect(() => {
+    const onMessage = (event: MessageEvent) => {
+      if (event.source === window.parent && isHostBridgeMessage(event) && event.data.type === KEY_INPUT) keyHandler.current(event.data.key)
+    }
+    window.addEventListener("message", onMessage)
+    return () => { window.removeEventListener("message", onMessage); reportKeyboard(false) }
+  }, [])
+
   const openRecommendations = (category: RecommendationCategory) => {
     setRecommendCategory(category)
     onRecommendationsOpenChange?.(true)
@@ -146,7 +182,10 @@ export function MobileComposer({ experts, draft, onDraftChange, selectedExpert, 
     return () => window.removeEventListener("keydown", onKey)
   })
 
+  // 打开「+」面板前记录输入框是否已调起键盘：面板关闭后恢复原状态（原来聚焦则重新聚焦，原来未聚焦则保持未聚焦）
+  const keyboardBeforePicker = useRef(false)
   const openPicker = () => {
+    keyboardBeforePicker.current = document.activeElement === textareaRef.current
     setPickerView("add")
     setExpertQuery("")
     setSearching(false)
@@ -156,17 +195,37 @@ export function MobileComposer({ experts, draft, onDraftChange, selectedExpert, 
   const chooseExpert = (name: string) => {
     onSelectedExpertChange(name)
     setPickerOpen(false)
-    setVoice(false)
-    requestAnimationFrame(() => textareaRef.current?.focus())
+    // 按住说话模式下选专家保持语音模式（专家标签显示在语音框底部）。
+    // 键盘只由点击输入框调起：选专家、上传图片、选推荐指令都不自动聚焦（2026-11-11 用户要求）
   }
 
   const query = expertQuery.trim()
   const visibleExperts = query ? installedExperts.filter((expert) => `${expert.name}${expert.role}`.includes(query)) : installedExperts
 
-  const exitVoice = () => {
-    setVoice(false)
-    requestAnimationFrame(() => textareaRef.current?.focus())
-  }
+  // 右侧键盘按钮只切换回文字输入模式，不聚焦输入框、不调起键盘（2026-11-11 用户要求）
+  const exitVoice = () => setVoice(false)
+  // 按住说话模式永远不出现键盘：输入框被卸载时浏览器不一定触发 blur，这里显式收起并清除聚焦态
+  useEffect(() => {
+    if (!voice) return
+    setFocused(false)
+    reportKeyboard(false)
+  }, [voice])
+
+  // 文字模式与按住说话模式共用的已选专家标签
+  // 已选专家标签：PillButton 自定义样式（2026-11-11）。整枚标签即移除按钮，比单独的小 X 更好点；X 紧跟名称（间距 4px）
+  const expertChip = selectedExpert ? (
+    <PillButton
+      aria-label={`移除专家 ${selectedExpert}`}
+      disabled={locked}
+      className="h-9 gap-1 bg-primary-bg pr-2.5 pl-2 text-sm font-medium text-primary hover:bg-primary-bg hover:text-primary [&_svg:not([class*='size-'])]:size-4"
+      onPointerDown={(event) => event.preventDefault()}
+      onClick={() => onSelectedExpertChange(null)}
+    >
+      {selectedAvatar ? <img src={selectedAvatar} alt="" className="size-5 shrink-0 rounded-full object-cover" /> : <ExpertLineIcon expert={selectedExpert} visualKey={selectedVisualKey} />}
+      <span className="px-0.5">{shortExpertLabel(selectedExpert)}</span>
+      <X aria-hidden="true" />
+    </PillButton>
+  ) : null
 
   // 文字模式与按住说话模式共用的附件缩略图区
   const attachmentList = uploads.length > 0 ? (
@@ -214,7 +273,6 @@ export function MobileComposer({ experts, draft, onDraftChange, selectedExpert, 
               onSelectedExpertChange(item.expert ?? null)
               setVoice(false)
               closeRecommendations()
-              requestAnimationFrame(() => textareaRef.current?.focus())
             }} />
           </div>
         </section>
@@ -222,11 +280,12 @@ export function MobileComposer({ experts, draft, onDraftChange, selectedExpert, 
 
       {voice ? (
         // 按住说话模式：有图片时附件区出现在上方、外框变为 24px 圆角，仍保持按住说话（参考用户截图）
-        <div className={cn("overflow-hidden border bg-background shadow-[0_4px_16px_rgba(0,0,0,0.08)]", uploads.length ? "rounded-[24px]" : "rounded-[28px]")}>
+        // 已选专家时（参考用户截图）：上方整行「按住说话」，下方操作栏为「+」、专家标签与键盘切换，外框 24px 圆角
+        <div className={cn("overflow-hidden border bg-background shadow-[0_4px_16px_rgba(0,0,0,0.08)]", uploads.length || selectedExpert ? "rounded-[24px]" : "rounded-[28px]")}>
         {attachmentList}
-        <div className="flex h-[54px] items-center px-2.5">
-          {/* 按住说话模式也保留「+」添加入口，位置与文字模式一致 */}
-          <InputButton label="添加图片或专家" disabled={locked} onClick={openPicker}><Plus /></InputButton>
+        <div className={cn("flex items-center px-2.5", selectedExpert ? "h-[46px] pt-1.5" : "h-[54px]")}>
+          {/* 按住说话模式也保留「+」添加入口，位置与文字模式一致；已选专家时移到下方操作栏 */}
+          {!selectedExpert && <InputButton label="添加图片或专家" disabled={locked} onClick={openPicker}><Plus /></InputButton>}
           <button
             type="button"
             disabled={locked}
@@ -242,8 +301,16 @@ export function MobileComposer({ experts, draft, onDraftChange, selectedExpert, 
           >
             {pressing ? "松开结束" : "按住说话"}
           </button>
-          <InputButton label="切换到键盘输入" onClick={exitVoice}><Keyboard /></InputButton>
+          {!selectedExpert && <InputButton label="切换到键盘输入" onClick={exitVoice}><Keyboard /></InputButton>}
         </div>
+        {selectedExpert && (
+          <div className="flex h-[55px] items-center gap-2 px-2.5">
+            <InputButton label="添加图片或专家" disabled={locked} onClick={openPicker}><Plus /></InputButton>
+            {expertChip}
+            <span className="flex-1" />
+            <InputButton label="切换到键盘输入" onClick={exitVoice}><Keyboard /></InputButton>
+          </div>
+        )}
         </div>
       ) : (
         <div
@@ -252,7 +319,7 @@ export function MobileComposer({ experts, draft, onDraftChange, selectedExpert, 
             "relative overflow-hidden border bg-background shadow-[0_4px_16px_rgba(0,0,0,0.08)] transition-[height,border-radius] duration-200 ease-out motion-reduce:transition-none",
             expanded ? "rounded-[24px]" : "rounded-[28px]",
           )}
-          style={{ height: boxHeight }}
+          style={{ height: rem(boxHeight) }}
         >
           {attachmentList}
           <div className={cn("transition-[padding] duration-200 ease-out motion-reduce:transition-none", expanded ? "pb-2 pl-5 pr-5 pt-[15px]" : "py-[15px] pl-[54px] pr-14")}>
@@ -265,8 +332,8 @@ export function MobileComposer({ experts, draft, onDraftChange, selectedExpert, 
               placeholder={disabled ? "请先处理上方的批准请求" : placeholder}
               className="block max-h-[120px] w-full resize-none bg-transparent text-base leading-6 text-foreground outline-none placeholder:text-muted-foreground/72"
               onChange={(event) => onDraftChange(event.target.value)}
-              onFocus={() => setFocused(true)}
-              onBlur={() => setFocused(false)}
+              onFocus={() => { setFocused(true); reportKeyboard(true) }}
+              onBlur={() => { setFocused(false); reportKeyboard(false) }}
               onKeyDown={(event) => {
                 if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
                   event.preventDefault()
@@ -275,15 +342,7 @@ export function MobileComposer({ experts, draft, onDraftChange, selectedExpert, 
               }}
             />
           </div>
-          {selectedExpert && (
-            <span className={cn("absolute bottom-[9px] left-[54px] flex h-9 items-center rounded-full bg-primary-bg px-2 text-sm font-medium text-primary transition-opacity duration-200 motion-reduce:transition-none", expanded ? "opacity-100" : "opacity-0")}>
-              {selectedAvatar ? <img src={selectedAvatar} alt="" className="size-5 shrink-0 rounded-full object-cover" /> : <ExpertLineIcon expert={selectedExpert} visualKey={selectedVisualKey} />}
-              <span className="px-1.5">{shortExpertLabel(selectedExpert)}</span>
-              <button type="button" aria-label={`移除专家 ${selectedExpert}`} disabled={locked} className="-mr-1 grid size-7 place-items-center rounded-full disabled:opacity-50" onPointerDown={(event) => event.preventDefault()} onClick={() => onSelectedExpertChange(null)}>
-                <X aria-hidden="true" className="size-4" />
-              </button>
-            </span>
-          )}
+          {expertChip && <span className={cn("absolute bottom-[9px] left-[54px] transition-opacity duration-200 motion-reduce:transition-none", expanded ? "opacity-100" : "opacity-0")}>{expertChip}</span>}
           <div className="absolute bottom-[9px] left-2.5">
             <InputButton label="添加图片或专家" disabled={locked} onClick={openPicker}><Plus /></InputButton>
           </div>
@@ -300,7 +359,8 @@ export function MobileComposer({ experts, draft, onDraftChange, selectedExpert, 
 
       {/* 添加面板：上传方式（Figma 5271:63584）+「专家」入口；二级为专家列表（参考用户截图） */}
       <Sheet open={pickerOpen} onOpenChange={setPickerOpen}>
-        <SheetContent side="bottom" showCloseButton={false} overlayClassName="bg-black/50 supports-backdrop-filter:backdrop-blur-none" className={cn("gap-0 rounded-t-3xl border-t-0 pb-[max(24px,env(safe-area-inset-bottom))]", pickerView === "experts" ? "bg-background-mobile px-4 pt-3 data-[side=bottom]:h-[70dvh]" : "px-4 pt-4")}>
+        {/* 关闭后焦点只在打开前已聚焦输入框时还给输入框，其余情况不聚焦，避免凭空调起键盘 */}
+        <SheetContent side="bottom" showCloseButton={false} finalFocus={() => (keyboardBeforePicker.current && !voice ? textareaRef.current : false)} overlayClassName="bg-black/50 supports-backdrop-filter:backdrop-blur-none" className={cn("gap-0 rounded-t-3xl border-t-0 pb-[max(24px,env(safe-area-inset-bottom))]", pickerView === "experts" ? "bg-background-mobile px-4 pt-3 data-[side=bottom]:h-[80dvh]" : "px-4 pt-4")}>
           {pickerView === "add" ? (
             <>
               <SheetTitle className="sr-only">添加</SheetTitle>
@@ -310,9 +370,9 @@ export function MobileComposer({ experts, draft, onDraftChange, selectedExpert, 
                 <UploadOption icon={<ImageIcon />} label="从相册选择" onClick={() => addImages(albumSamples, ALBUM_FAIL_ONCE_INDEX)} />
               </div>
               <button type="button" className="mt-3 flex min-h-14 w-full items-center gap-3 rounded-2xl px-2 text-left text-base leading-6 text-foreground" onClick={() => setPickerView("experts")}>
-                <Sparkles aria-hidden="true" className="size-5" />
+                {/* 图标与桌面「+」菜单的专家入口一致（contextIcons.专家 = Bot）；右侧不显示已选专家 */}
+                <ExpertEntryIcon aria-hidden="true" className="size-5" />
                 <span className="flex-1">专家</span>
-                {selectedExpert && <span className="max-w-32 truncate text-sm text-muted-foreground">{selectedExpert}</span>}
                 <ChevronRight aria-hidden="true" className="size-5 text-muted-foreground" />
               </button>
             </>

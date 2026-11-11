@@ -19,6 +19,20 @@
   }
   html {
     @apply min-h-full font-sans;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+  /*
+    402 基准等比缩放：根字号 = 屏宽 / 402 × 16px，所有 rem（构建时由 px 换算）随屏宽等比变化。
+    宽度上限 480px（大屏手机、折叠屏外屏），避免在桌面浏览器直接打开时无限放大。
+    只加在产品页面上（main.tsx），宿主预览外壳保持 16px。
+  */
+  html.design-scale {
+    font-size: calc(min(100vw, 480px) / 402 * 16);
+  }
+  /* 宿主模拟键盘弹出时，键盘自带 Home Indicator 区域，产品不再预留底部 34px（见 host-bridge reportKeyboard） */
+  html[data-host-keyboard] {
+    --host-bottom-inset: 0px !important;
   }
   #root {
     @apply min-h-dvh;
@@ -84,6 +98,13 @@
   --host-tab-label: #676c72;
   --host-tab-active: #2d57b9;
   --host-indicator: #bdbdbd;
+  /* 宿主模拟键盘（iOS 浅色键盘取色） */
+  --host-keyboard-bg: #d1d4d9;
+  --host-keyboard-key: #fff;
+  --host-keyboard-fn: #abb0ba;
+  --host-keyboard-label: #000;
+  --host-keyboard-shadow: rgb(0 0 0 / 30%);
+  --host-keyboard-accent: #007aff;
   font-family:
     -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft Yahei",
     sans-serif;
@@ -106,6 +127,12 @@
   --host-tab-label: var(--color-neutral-400);
   --host-tab-active: #6f95ff;
   --host-indicator: var(--color-neutral-500);
+  --host-keyboard-bg: #2b2b2d;
+  --host-keyboard-key: #6b6b6e;
+  --host-keyboard-fn: #464648;
+  --host-keyboard-label: #fff;
+  --host-keyboard-shadow: rgb(0 0 0 / 60%);
+  --host-keyboard-accent: #0a84ff;
   color-scheme: dark;
 }
 .mobile-app button,

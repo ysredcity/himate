@@ -92,7 +92,7 @@ AgentShell持有页面选择、scheduledExpertIds（默认企业hr / travel，�
 
 ## 移动宿主预览边界
 
-`apps/mobile/src/main.tsx` 根据 `preview=web` 选择产品App或默认HostPreviewLayout。`src/preview/host-preview-layout.tsx` 与 `host-preview.css` 管理系统状态栏、工作台导航、飞书Tab栏和宿主说明；通过同源iframe加载纯网页入口，不与产品共享状态。App.tsx只管理HiMate首页、对话、输入与产物弹窗。产品页面不设返回按钮；宿主 header 返回按钮通过 `src/preview/host-bridge.ts` 的同源 postMessage 通知产品逐层返回，产品无可返回层级时宿主显示说明，见 [ADR 0009](decisions/0009-host-back-navigation.md)。底部 Tab 栏显隐由产品经 `himate:tab-bar` 告知宿主（仅首页显示）。明暗主题由宿主 header 切换，经同一协议的 `himate:theme` 下发给产品，宿主内抽屉不再显示切换；飞书 Tab 栏为 Token + `public/host-tabs/` 图标分层，见 [ADR 0010](decisions/0010-host-theme-control.md)。详见 [ADR 0007](decisions/0007-mobile-host-preview-container.md)。
+`apps/mobile/src/main.tsx` 根据 `preview=web` 选择产品App或默认HostPreviewLayout。`src/preview/host-preview-layout.tsx` 与 `host-preview.css` 管理系统状态栏、工作台导航、飞书Tab栏和宿主说明；通过同源iframe加载纯网页入口，不与产品共享状态。App.tsx只管理HiMate首页、对话、输入与产物弹窗。产品页面不设返回按钮；宿主 header 返回按钮通过 `src/preview/host-bridge.ts` 的同源 postMessage 通知产品逐层返回，产品无可返回层级时宿主显示说明，见 [ADR 0009](decisions/0009-host-back-navigation.md)。底部 Tab 栏显隐由产品经 `himate:tab-bar` 告知宿主（仅首页显示）。明暗主题由宿主 header 切换，经同一协议的 `himate:theme` 下发给产品，宿主内抽屉不再显示切换；飞书 Tab 栏为 Token + `public/host-tabs/` 图标分层，见 [ADR 0010](decisions/0010-host-theme-control.md)。详见 [ADR 0007](decisions/0007-mobile-host-preview-container.md)。Composer 聚焦时产品发 `himate:keyboard`，宿主在网格底部弹出 `host-keyboard.tsx` 模拟键盘（iframe 随之缩短），按键经 `himate:key-input` 回传产品，见 [ADR 0013](decisions/0013-host-simulated-keyboard.md)。
 
 专家能力以canSummon统一约束：expert-data.ts导出summonableExperts供app-config和Composer专家视觉映射使用；桌面Composer专家菜单由AgentShell按installedExpertIds覆盖config.composerExpertOptions，只列已安装专家，并经ChatWorkspace → 首页 / 对话页 → ConversationSection把onBrowseExperts传给Composer，用于“查看更多专家”打开目录。安装规范化、计额和自动匹配过滤不可召唤专家，安装函数额外返回unsupported；界面无安装入口不替代领域校验。初始5位均支持召唤。
 
@@ -120,3 +120,5 @@ App.tsx → AgentShell（会话列表、共用抽屉、深浅色、产物生命�
 | 移动端 Composer（新对话页与对话页共用） | `mobile-composer.tsx`；接入在 `new-conversation-page.tsx`、`conversation-section.tsx`。模板 `composer.tsx` 只保留类型与 PC 实现，移动端不渲染 |
 
 主题：`index.css` 引入 `agent-ui/immersive/theme.css`（Token 写在 `:root` / `.dark`），首页与宿主壳在 `.mobile-app` / `.host-preview` 上重新声明浅色 Token。移动 gate：lint → `check:scripts`（模板剧本校验）→ `check:tokens` → TypeScript + 构建。边界见 [ADR 0008](decisions/0008-mobile-agent-mode-template.md)。
+
+尺寸缩放：产品页面以 402px 为基准等比缩放。`vite.config.ts` 内联 PostCSS 插件在构建 / 开发时把 CSS 声明中的 px 换成 rem（≤1px 与媒体查询除外），`main.tsx` 只在 `preview=web` 时给 html 加 `design-scale`（根字号 min(100vw,480px)/402×16），行内样式尺寸经 `src/lib/design-scale.ts` 的 `rem()` 输出。未新增依赖，见 [ADR 0012](decisions/0012-mobile-proportional-scaling.md)。

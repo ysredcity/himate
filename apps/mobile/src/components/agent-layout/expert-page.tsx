@@ -2,13 +2,14 @@ import { useEffect, useRef, useState, type TouchEvent } from "react"
 import { Tabs } from "@base-ui/react/tabs"
 import { Check, ChevronRight, CircleCheckBig, Info, Menu, MessageCircle, Plus, Search, Store, Trash2, UserRound, UsersRound, X, type LucideIcon } from "lucide-react"
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Alert, AlertAction, AlertTitle } from "@/components/ui/alert"
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet"
 import { cn } from "@/lib/utils"
 import { ExpertRecommendationBanner } from "./expert-recommendation-banner"
 import { expertCatalog, expertScenes, type Expert } from "./expert-data"
-import { installedExpertIds, personalInstallationCount, SCHEDULED_EXPERT_LIMIT } from "./expert-rules"
+import { installedExpertIds, SCHEDULED_EXPERT_LIMIT } from "./expert-rules"
 import { GlassAction, glassSurface, glassSurfaceClass } from "./mobile-header"
+import { rem } from "@/lib/design-scale"
 
 type ExpertPageProps = {
   scheduledIds: readonly string[]
@@ -20,12 +21,11 @@ type ExpertPageProps = {
 }
 
 type ExpertTab = "market" | "mine" | "scheduled"
+/** 分类滑动手势的边缘保护宽度（px） */
+const SWIPE_EDGE_GUARD = 32
 // Tab、说明、空状态文案与桌面 expert-page 一致
 const tabs: { id: ExpertTab; label: string }[] = [{ id: "market", label: "专家市场" }, { id: "mine", label: "我的专家" }, { id: "scheduled", label: "已安装" }]
 const tabIcons: Record<ExpertTab, LucideIcon> = { market: Store, mine: UserRound, scheduled: CircleCheckBig }
-const introductions = {
-  mine: "在智能体管理平台个人空间发布的 AI 助手，会在这里汇集。",
-}
 
 /**
  * 移动端专家列表页：功能与桌面 ExpertPage 一致（三 Tab、场景筛选、推荐 Banner、详情、安装 / 删除、召唤 / 进入），
@@ -40,7 +40,6 @@ export function ExpertPage({ scheduledIds, isSidebarDocked, onOpenSidebar, onAdd
   const [searching, setSearching] = useState(false)
   const [query, setQuery] = useState("")
   const installedIds = installedExpertIds(scheduledIds, expertCatalog)
-  const personalCount = personalInstallationCount(installedIds, expertCatalog)
   const keyword = query.trim()
   const matches = (expert: Expert) => !keyword || [expert.name, expert.role, expert.description, ...expert.tags].some((text) => text.includes(keyword))
   const lists = {
@@ -75,7 +74,10 @@ export function ExpertPage({ scheduledIds, isSidebarDocked, onOpenSidebar, onAdd
     // Banner 轮播与分类栏自身有横向滑动，从这两处开始的手势不切换分类
     const target = event.target as HTMLElement
     if (event.touches.length !== 1 || target.closest("[data-swipe-ignore]")) { swipeStart.current = null; return }
-    swipeStart.current = { x: event.touches[0].clientX, y: event.touches[0].clientY }
+    // 起点落在左右边缘 32px 内时留给系统 / 宿主的边缘返回手势（iOS 约 20pt，Android 手势导航默认约 24dp，可调大）
+    const { clientX, clientY } = event.touches[0]
+    if (clientX < SWIPE_EDGE_GUARD || clientX > window.innerWidth - SWIPE_EDGE_GUARD) { swipeStart.current = null; return }
+    swipeStart.current = { x: clientX, y: clientY }
   }
   const onSwipeEnd = (event: TouchEvent) => {
     const start = swipeStart.current
@@ -90,7 +92,7 @@ export function ExpertPage({ scheduledIds, isSidebarDocked, onOpenSidebar, onAdd
   }
 
   return (
-    <section aria-label="专家中心" className="relative flex min-w-0 flex-1 flex-col bg-background pb-(--host-bottom-inset,0px)">
+    <section aria-label="专家中心" className="relative flex min-w-0 flex-1 flex-col bg-background">
       <Tabs.Root value={tab} onValueChange={(value) => setTab(value as ExpertTab)} className="flex min-h-0 flex-1 flex-col">
         {/* 顶部栏不透明并压在滚动区之上，避免与吸顶筛选栏之间透出列表内容（2026-11-11） */}
         <header className="relative z-30 flex h-16 shrink-0 items-center gap-3 bg-background px-4">
@@ -102,7 +104,7 @@ export function ExpertPage({ scheduledIds, isSidebarDocked, onOpenSidebar, onAdd
           */}
           <div
             className={cn(glassSurface, "absolute top-2 right-4 flex h-12 items-center overflow-hidden rounded-full transition-[width] duration-200 ease-out motion-reduce:transition-none")}
-            style={{ width: searching ? `calc(100% - ${isSidebarDocked ? 32 : 92}px)` : 48 }}
+            style={{ width: searching ? `calc(100% - ${rem(isSidebarDocked ? 32 : 92)})` : rem(48) }}
           >
             {searching ? (
               <>
@@ -115,8 +117,11 @@ export function ExpertPage({ scheduledIds, isSidebarDocked, onOpenSidebar, onAdd
             )}
           </div>
         </header>
-        {/* 底部留出悬浮 Tab 栏的高度（56px + 上下间距），避免最后一行被遮住 */}
-        <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain pb-24">
+        {/*
+          滚动区延伸到 Home Indicator 区域下方（2026-11-11：该区域透明，列表从下面透出），
+          底部留出 Home Indicator / 安全区 + 悬浮 Tab 栏高度，避免最后一行被遮住
+        */}
+        <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain pb-[calc(max(var(--host-bottom-inset,0px),env(safe-area-inset-bottom))+88px)]">
           {tabs.map((item) => (
             <Tabs.Panel
               key={item.id}
@@ -126,11 +131,16 @@ export function ExpertPage({ scheduledIds, isSidebarDocked, onOpenSidebar, onAdd
               onTouchEnd={item.id === "market" ? onSwipeEnd : undefined}
               onTouchCancel={item.id === "market" ? () => { swipeStart.current = null } : undefined}
             >
-              {item.id === "mine" && <p className="text-sm leading-6 text-muted-foreground">{introductions.mine}</p>}
+              {/* 顶部说明与桌面一致（2026-11-11）：我的专家为带「前往管理」的单行 Alert（演示阶段不跳转），已安装为单行安装规则 Alert */}
+              {item.id === "mine" && (
+                <Alert className="*:[svg]:row-span-1">
+                  <Info aria-hidden="true" /><AlertTitle>在智能体管理平台个人空间发布的智能体</AlertTitle>
+                  <AlertAction className="top-1/2 right-2.5 -translate-y-1/2"><button type="button" className="text-sm font-medium text-primary">前往管理</button></AlertAction>
+                </Alert>
+              )}
               {item.id === "scheduled" && (
-                <Alert>
-                  <Info aria-hidden="true" /><AlertTitle>安装说明</AlertTitle>
-                  <AlertDescription>可自行安装 {SCHEDULED_EXPERT_LIMIT} 位专家（已用 {personalCount} 位）。企业默认专家不占名额，且不可删除。</AlertDescription>
+                <Alert className="*:[svg]:row-span-1">
+                  <Info aria-hidden="true" /><AlertTitle>安装后支持自动调度，最多安装{SCHEDULED_EXPERT_LIMIT}个专家，企业默认安装的专家不占名额且不可删除。</AlertTitle>
                 </Alert>
               )}
               {item.id === "market" && <div data-swipe-ignore className="mb-1"><ExpertRecommendationBanner onSelect={setDetail} /></div>}
@@ -167,8 +177,10 @@ export function ExpertPage({ scheduledIds, isSidebarDocked, onOpenSidebar, onAdd
             </Tabs.Panel>
           ))}
         </div>
-        {/* 一级 Tab：底部悬浮玻璃栏（参考用户截图与工作台首页底部输入区），位于 Home Indicator 上方；背景 45%，比首页输入胶囊更通透 */}
-        <Tabs.List aria-label="专家列表" className={cn(glassSurfaceClass, "bg-background/45 absolute bottom-[calc(var(--host-bottom-inset,0px)+12px)] left-1/2 z-30 grid h-14 w-[min(288px,calc(100%-64px))] -translate-x-1/2 grid-cols-3 rounded-full p-1")}>
+        {/* 底部渐变遮罩：从页面底部（Home Indicator 区）到 Tab 栏顶部，底部不透明背景色 → 顶部完全透明；不拦截触摸 */}
+        <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-[calc(max(12px,calc(max(var(--host-bottom-inset,0px),env(safe-area-inset-bottom))-10px))+60px)] bg-linear-to-t from-background to-transparent" />
+        {/* 一级 Tab：底部悬浮玻璃栏，背景 45%；下缘压进 Home Indicator 区 10px（无安全区的设备至少离底 12px），高 60px */}
+        <Tabs.List aria-label="专家列表" className={cn(glassSurfaceClass, "bg-background/45 absolute bottom-[max(12px,calc(max(var(--host-bottom-inset,0px),env(safe-area-inset-bottom))-10px))] left-1/2 z-30 grid h-15 w-[min(288px,calc(100%-64px))] -translate-x-1/2 grid-cols-3 rounded-full p-1")}>
           {/* 选中填充：Base UI Indicator 提供当前 Tab 相对位置，切换时色块滑到目标 Tab（减弱动效时直接跳转） */}
           <Tabs.Indicator className="absolute top-(--active-tab-top) left-(--active-tab-left) h-(--active-tab-height) w-(--active-tab-width) rounded-full bg-foreground/5 transition-[left,width] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none" />
           {tabs.map((item) => {
@@ -190,21 +202,25 @@ export function ExpertPage({ scheduledIds, isSidebarDocked, onOpenSidebar, onAdd
           {detail && (
             <>
               <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5">
-              <div className="flex items-start gap-3">
-                <img src={detail.avatar} alt="" className="size-16 shrink-0 rounded-2xl object-cover" />
-                <div className="min-w-0 flex-1 pt-1">
-                  <SheetTitle className="text-lg leading-7 font-semibold">{detail.name}</SheetTitle>
-                  <p className="text-sm leading-5 text-muted-foreground">{detail.scene}</p>
+              {/* 字段与桌面详情对话框一致（2026-11-11）：头像右侧名称 + 更新时间；下方「适用角色」「专家介绍」上下堆叠 */}
+              <div className="flex items-center gap-3">
+                <img src={detail.avatar} alt="" className="size-14 shrink-0 rounded-full object-cover" />
+                <div className="grid min-w-0 flex-1 gap-1">
+                  <SheetTitle className="truncate text-lg leading-7 font-semibold">{detail.name}</SheetTitle>
+                  <p className="text-sm leading-5 text-muted-foreground">更新时间：{detail.updatedAt}</p>
                 </div>
-                <button type="button" aria-label="关闭" className="-mt-1 -mr-2 grid size-11 shrink-0 place-items-center rounded-full" onClick={() => setDetail(null)}><X className="size-5" /></button>
+                <button type="button" aria-label="关闭" className="-mr-2 grid size-11 shrink-0 place-items-center self-start rounded-full" onClick={() => setDetail(null)}><X className="size-5" /></button>
               </div>
-              <SheetDescription className="mt-4 text-base leading-6 text-foreground">{detail.description}</SheetDescription>
-              <dl className="mt-4 grid grid-cols-[64px_1fr] gap-x-4 gap-y-3 text-sm leading-5">
-                <dt className="text-muted-foreground">适用角色</dt><dd>{detail.role}</dd>
-                <dt className="text-muted-foreground">场景</dt><dd>{detail.scene}</dd>
-                <dt className="text-muted-foreground">来源</dt><dd>{detail.source}{detail.mine && " · 个人空间发布"}</dd>
-                <dt className="text-muted-foreground">调用方式</dt><dd>{detail.canSummon ? "支持直接召唤" : "独立页面入口"}</dd>
-                <dt className="text-muted-foreground">能力</dt><dd className="flex flex-wrap gap-1.5">{detail.tags.map((tag) => <span key={tag} className="rounded bg-muted px-2 py-0.5">{tag}</span>)}</dd>
+              <SheetDescription className="sr-only">{detail.description}</SheetDescription>
+              <dl className="mt-6 grid gap-5">
+                <div className="grid gap-2">
+                  <dt className="text-base leading-6 font-medium">适用角色</dt>
+                  <dd className="text-base leading-6 text-muted-foreground">{detail.role}</dd>
+                </div>
+                <div className="grid gap-2">
+                  <dt className="text-base leading-6 font-medium">专家介绍</dt>
+                  <dd className="text-base leading-6 text-muted-foreground">{detail.description}</dd>
+                </div>
               </dl>
               </div>
               <DetailActions expert={detail} installed={installedIds.includes(detail.id)} removable={tab === "scheduled"} onInstall={() => onAdd(detail.id)} onRemove={() => { onRemove(detail.id); setDetail(null) }} onSummon={() => summon(detail)} />

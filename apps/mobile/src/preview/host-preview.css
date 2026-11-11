@@ -149,3 +149,121 @@
 .host-home-only .host-home-indicator {
   background: var(--foreground);
 }
+
+/*
+ * 模拟系统键盘（iOS 拼音键盘外观，402 宽，总高 336px = 候选栏 44 + 四行按键 216 + 底栏 76）。
+ * 作为宿主网格的一行，高度 0 ↔ 336 过渡，网页视口随之缩短，Composer 停在键盘上方。
+ */
+.host-preview {
+  grid-template-rows: 88px minmax(0, 1fr) auto auto;
+}
+.host-keyboard {
+  height: 0;
+  overflow: hidden;
+  background: var(--host-keyboard-bg);
+  transition: height 250ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+.host-keyboard[data-open] {
+  height: 336px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .host-keyboard {
+    transition: none;
+  }
+}
+.host-keyboard-inner {
+  position: relative;
+  height: 336px;
+  display: flex;
+  flex-direction: column;
+  padding: 0 3px;
+  color: var(--host-keyboard-label);
+  user-select: none;
+  -webkit-user-select: none;
+}
+.host-keyboard-candidates {
+  height: 44px;
+  flex-shrink: 0;
+}
+.host-keyboard-row {
+  display: flex;
+  gap: 6px;
+  height: 42px;
+  margin-top: 12px;
+  flex-shrink: 0;
+}
+.host-keyboard-candidates + .host-keyboard-row {
+  margin-top: 8px;
+}
+.host-keyboard-row-indent {
+  padding: 0 calc((100% - 9 * 6px) / 10 / 2);
+}
+.host-keyboard-gap {
+  flex: 0 0 8px;
+  margin: 0 -3px;
+}
+.host-key {
+  flex: 1 1 0;
+  min-width: 0;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  background: var(--host-keyboard-key);
+  box-shadow: 0 1px 0 var(--host-keyboard-shadow);
+  color: inherit;
+  font-size: 22px;
+  line-height: 1;
+  cursor: default;
+  -webkit-tap-highlight-color: transparent;
+}
+.host-key:active {
+  background: var(--host-keyboard-fn);
+}
+.host-key svg {
+  width: 22px;
+  height: 22px;
+}
+.host-key-fn {
+  background: var(--host-keyboard-fn);
+}
+.host-key-fn:active,
+.host-key-fn[aria-pressed="true"] {
+  background: var(--host-keyboard-key);
+}
+.host-key-wide {
+  flex: 0 0 42px;
+}
+.host-key-123 {
+  flex: 0 0 87px;
+  font-size: 16px;
+}
+.host-key-space {
+  flex: 1 1 auto;
+  font-size: 16px;
+}
+.host-key-return {
+  flex: 0 0 87px;
+  font-size: 16px;
+}
+.host-key-accent {
+  background: var(--host-keyboard-accent);
+  color: var(--primary-foreground);
+}
+.host-keyboard-bottom {
+  position: relative;
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 14px 22px 0;
+  color: var(--host-keyboard-label);
+}
+.host-keyboard-bottom svg {
+  width: 26px;
+  height: 26px;
+}
+.host-keyboard-bottom .host-home-indicator {
+  background: var(--host-keyboard-label);
+}

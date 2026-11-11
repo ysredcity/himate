@@ -19,5 +19,7 @@ ADR 记录长期有效的取舍，不代替短期任务日志。编号递增；�
 | [0009](0009-host-back-navigation.md) | 宿主 header 返回驱动产品逐层返回（部分替代 0007） | 已接受并实施 |
 | [0010](0010-host-theme-control.md) | 明暗主题由宿主容器切换、飞书 Tab 栏分层（部分替代 0008） | 已接受并实施 |
 | [0011](0011-mobile-expert-directory.md) | 移动端专家列表页：复制桌面专家数据与规则、抽屉入口、召唤与安装同步 | 已接受并实施 |
+| [0012](0012-mobile-proportional-scaling.md) | 移动端以 402 为基准等比缩放（rem + 构建时 px 换算） | 已接受并实施 |
+| [0013](0013-host-simulated-keyboard.md) | 宿主预览壳模拟系统键盘（himate:keyboard / himate:key-input） | 已接受并实施 |
 
 新增决策使用 [模板](template.md)。

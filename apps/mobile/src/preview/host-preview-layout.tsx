@@ -6,12 +6,16 @@ import { assets } from "../assets";
 import {
   BACK_STATE,
   HOST_BACK,
+  KEY_INPUT,
+  KEYBOARD,
   TAB_BAR,
   THEME,
   THEME_STORAGE_KEY,
   isHostBridgeMessage,
   readStoredDarkMode,
+  type HostKey,
 } from "./host-bridge";
+import { HostKeyboard } from "./host-keyboard";
 import "./host-preview.css";
 
 /**
@@ -38,7 +42,14 @@ export function HostPreviewLayout() {
   const [darkMode, setDarkMode] = useState(readStoredDarkMode);
   // 底部飞书 Tab 栏：产品处于工作台首页时显示，进入新对话 / 对话页后隐藏（只留系统 Home Indicator）
   const [tabBarVisible, setTabBarVisible] = useState(true);
+  // 模拟系统键盘：产品 Composer 输入框聚焦时弹出
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
   const webviewRef = useRef<HTMLIFrameElement>(null);
+  const sendKey = (key: HostKey) =>
+    webviewRef.current?.contentWindow?.postMessage(
+      { type: KEY_INPUT, key },
+      window.location.origin,
+    );
 
   const syncTheme = (dark: boolean) =>
     webviewRef.current?.contentWindow?.postMessage(
@@ -62,6 +73,7 @@ export function HostPreviewLayout() {
       if (event.data.type === BACK_STATE)
         setProductCanGoBack(event.data.canGoBack);
       if (event.data.type === TAB_BAR) setTabBarVisible(event.data.visible);
+      if (event.data.type === KEYBOARD) setKeyboardOpen(event.data.open);
     };
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
@@ -115,7 +127,9 @@ export function HostPreviewLayout() {
         src={webviewUrl.href}
         onLoad={() => syncTheme(darkMode)}
       />
-      <footer className="host-preview-footer">
+      <HostKeyboard open={keyboardOpen} onKey={sendKey} />
+      {/* 键盘弹出时覆盖底部区域：隐藏 Tab 栏 / Home Indicator，键盘自带指示条 */}
+      <footer className="host-preview-footer" hidden={keyboardOpen}>
         {!tabBarVisible ? (
           <div className="host-home-only" aria-hidden="true">
             <span className="host-home-indicator" />
