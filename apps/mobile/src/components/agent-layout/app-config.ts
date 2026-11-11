@@ -1,3 +1,4 @@
+import { summonableExperts } from "./expert-data"
 import { homeRecommendationCategories } from "./recommendation-data"
 import type { ProductBlockRenderer } from "./conversation-flow"
 import { renderProductBlock } from "./product-block-renderer"
@@ -42,8 +43,10 @@ export type AppConfig = {
 export const appConfig = {
   identity: { name: "HiMate", avatar: "himate" },
   navigation: [
-    // 移动端抽屉只保留「新对话」，其余能力入口不提供（用户 2026-11-07 确认）
+    // 移动端抽屉：新对话 + 专家（2026-11-10 用户确认增加专家），其余能力入口不提供
     { id: "new-conversation", label: "新对话", visualKey: "newConversation" },
+    // 专家入口沿用 capability-hub 导航 ID（与桌面一致），只改文案与图标
+    { id: "capability-hub", label: "专家", visualKey: "capabilityHub" },
   ],
   experts: [
     { id: "hr", label: "人事专家", visualKey: "office" },
@@ -56,6 +59,10 @@ export const appConfig = {
     { id: "travel", label: "差旅专家", visualKey: "travel" },
     { id: "ux", label: "用户体验专家", visualKey: "ux" },
     { id: "industry", label: "行业研究专家", visualKey: "industry" },
+    // 可召唤专家（桌面数据副本）：安装后可能被指定或自动匹配，补充身份头像映射，已存在的名称不重复
+    ...summonableExperts
+      .filter((expert) => !["人事专家", "差旅专家"].includes(expert.name))
+      .map((expert) => ({ id: expert.id, label: expert.name, visualKey: expert.visualKey })),
   ],
   showConnectorSelect: true,
   renderProductBlock,

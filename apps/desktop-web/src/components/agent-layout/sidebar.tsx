@@ -557,8 +557,19 @@ export function AgentSidebarRail({
       aria-label="主导航"
       className={cn("flex h-full w-13 shrink-0 flex-col items-center border-r border-sidebar-border bg-sidebar text-sidebar-foreground", className)}
     >
+      {/* 默认显示产品头像；悬停或键盘聚焦时在原位置换成展开按钮 */}
       <div className="flex h-13 shrink-0 items-center">
-        <RailTooltipButton label="展开导航" onClick={onExpand}><IndentIncrease /></RailTooltipButton>
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <button type="button" aria-label="展开导航" className={cn(railButtonClass, "group/expand")} onClick={onExpand}>
+                <AgentAvatar productAvatar={config.identity.avatar} className="size-7 transition-opacity group-hover/expand:opacity-0 group-focus-visible/expand:opacity-0 motion-reduce:transition-none [&_svg]:size-5" />
+                <IndentIncrease className="absolute opacity-0 transition-opacity group-hover/expand:opacity-100 group-focus-visible/expand:opacity-100 motion-reduce:transition-none" />
+              </button>
+            }
+          />
+          <TooltipContent side="right">展开导航</TooltipContent>
+        </Tooltip>
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col items-center gap-0.5 overflow-y-auto py-2">

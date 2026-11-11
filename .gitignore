@@ -25,6 +25,8 @@ dist-ssr
 .workbuddy/
 # WorkBuddy 发布配置（本机 appId 与绝对路径，仅本机发布用）
 *.genie
+# 本地检查截图与临时脚本
+.ued-tmp/
 
 # Local environment and credentials
 .env

@@ -91,6 +91,9 @@ type AgentSidebarProps = {
   onClose?: () => void
   onCollapse: () => void
   onDarkModeChange: (darkMode: boolean) => void
+  /** HiMate 移动端：打开专家列表页；expertsActive 时高亮该入口 */
+  onOpenExperts?: () => void
+  expertsActive?: boolean
   /** HiMate 移动端：在宿主壳内由宿主 header 切换主题，抽屉不显示切换按钮 */
   showThemeToggle?: boolean
   onNewChat: () => void
@@ -142,6 +145,8 @@ export function AgentSidebar({
   onCollapse,
   onDarkModeChange,
   showThemeToggle = true,
+  onOpenExperts,
+  expertsActive = false,
   onNewChat,
   onPinnedChange,
   onRename,
@@ -204,7 +209,8 @@ export function AgentSidebar({
                 icon={navigationIcons[item.visualKey]}
                 label={item.label}
                 outline={item.id === "new-conversation"}
-                onClick={item.id === "new-conversation" ? onNewChat : undefined}
+                active={item.id === "capability-hub" && expertsActive}
+                onClick={item.id === "new-conversation" ? onNewChat : item.id === "capability-hub" ? onOpenExperts : undefined}
               />
             ))}
           </SidebarMenu>
@@ -297,22 +303,25 @@ function PrimaryMenuItem({
   label,
   onClick,
   outline = false,
+  active = false,
 }: {
   drawer?: boolean
   icon: ComponentType<{ className?: string }>
   label: string
   onClick?: () => void
   outline?: boolean
+  active?: boolean
 }) {
   return (
     <SidebarMenuItem className={cn(drawer && "mb-0.5")}>
       <SidebarMenuButton
         className={cn(
-          "h-9 rounded-[10px] px-2 text-sm font-medium text-sidebar-accent-foreground data-active:border data-active:border-sidebar-border data-active:bg-card data-active:shadow-xs",
+          "h-9 rounded-[10px] px-2 text-sm font-medium text-sidebar-accent-foreground data-active:bg-sidebar-accent data-active:text-sidebar-accent-foreground",
           outline && "border border-sidebar-border bg-card shadow-xs hover:bg-sidebar-accent",
           drawer && "h-10 px-2.5 text-base [&_svg]:size-[18px]",
           drawer && outline && "mb-2 h-12 justify-center rounded-full",
         )}
+        isActive={active}
         onClick={onClick}
       >
         <Icon />

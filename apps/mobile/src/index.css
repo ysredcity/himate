@@ -5,6 +5,11 @@
  * 所以即使 <html> 带 .dark，首页也保持原有浅色视觉。
  */
 @import "./agent-ui/immersive/theme.css";
+/*
+ * 移动端不使用鼠标悬停样式（用户 2026-11-08 确认）：把 Tailwind 的 hover 变体改为永不匹配，
+ * hover: / group-hover: / peer-hover: 等写法全部失效；按下、焦点、选中等状态不受影响。
+ */
+@custom-variant hover (&:not(*));
 @layer base {
   * {
     @apply border-border outline-ring/50;

@@ -5,7 +5,13 @@ import { cn } from "@/lib/utils"
  * 移动端 chat-container-header-agent 的玻璃按钮（Figma 5271:62234、2516:59109）：
  * 白底、0.5px 描边、0 2px 6px 10% 投影，单个按钮 48px 圆形，按钮组为同样外观的胶囊。
  */
-const glassSurface = "border-[0.5px] border-border bg-background drop-shadow-[0_2px_6px_rgba(0,0,0,0.1)]"
+export const glassSurface = "border-[0.5px] border-border bg-background drop-shadow-[0_2px_6px_rgba(0,0,0,0.1)]"
+
+/**
+ * 悬浮磨砂玻璃（与工作台首页底部输入胶囊同感）：65% 背景 + 16px 模糊 + 浅色描边 + 浮层投影。
+ * 用于专家页底部 Tab 栏与顶栏搜索。
+ */
+export const glassSurfaceClass = "border border-white/80 bg-background/65 shadow-[0_4px_16px_rgba(0,0,0,0.1)] backdrop-blur-[16px] dark:border-white/10"
 
 /** 设计稿 chat-container-header-agent 的圆形玻璃按钮：48px、0.5px 描边、柔和投影 */
 export function GlassAction({ children, label, onClick }: { children: React.ReactNode; label: string; onClick: () => void }) {

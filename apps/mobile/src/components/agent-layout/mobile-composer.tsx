@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react"
-import { ArrowUp, Camera, Image as ImageIcon, Keyboard, Mic, RotateCcw, X } from "lucide-react"
+import { ArrowUp, Camera, Check, ChevronLeft, ChevronRight, Image as ImageIcon, Keyboard, Mic, Plus, RotateCcw, Search, Sparkles, X } from "lucide-react"
 import { toast } from "sonner"
 
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet"
@@ -7,8 +7,10 @@ import { cn } from "@/lib/utils"
 import type { WelcomeExpert } from "@/agent-ui/immersive/contracts"
 import type { ComposerSendHandler, ContextItem } from "./composer"
 import { ExpertLineIcon, shortExpertLabel } from "./resource-visuals"
-import { ComposerRecommendations } from "./composer-recommendations"
+import { ComposerRecommendations, RecommendationItems, type RecommendationCategory } from "./composer-recommendations"
 import { Spinner } from "@/components/ui/spinner"
+import { useInstalledExperts, useOpenExperts } from "./expert-context"
+import { expertCatalog } from "./expert-data"
 import { ALBUM_FAIL_ONCE_INDEX, albumSamples, cameraSamples, UPLOAD_DURATION, type UploadSample } from "./upload-samples"
 
 export type MobileComposerProps = {
@@ -21,6 +23,8 @@ export type MobileComposerProps = {
   selectedExpert: string | null
   onSelectedExpertChange: (expert: string | null) => void
   onRecommendationsOpenChange?: (open: boolean) => void
+  /** 是否显示推荐分类行：新对话页显示，对话页不显示（2026-11-11 用户确认） */
+  showRecommendations?: boolean
   onSend: ComposerSendHandler
   disabled?: boolean
   sending?: boolean
@@ -41,13 +45,22 @@ type ImageUpload = UploadSample & { id: string; status: "uploading" | "done" | "
  * - 有值时右侧出现发送按钮；麦克风切换到「按住说话」，键盘图标切回文字输入。语音为演示，不录音。
  * - 左下角图片按钮打开「拍照 / 从相册选择」面板（Figma 5271:64305），不调起真实相机或相册，使用本地示例图模拟上传；
  *   上传中显示 Spinner，失败可点击重试，可只发送图片。
+ * - 同一面板底部有「专家」入口（参考用户截图），进入二级「专家」列表：与桌面 Composer 一致，只列已安装专家，
+ *   支持搜索；选中后作为指定专家显示在输入框内。「查看更多专家」与桌面同文案，移动端暂无专家目录，点击仅提示。
  */
-export function MobileComposer({ experts, draft, onDraftChange, selectedExpert, onSelectedExpertChange, onSend, onRecommendationsOpenChange, disabled = false, sending = false, placeholder = "发送消息给我" }: MobileComposerProps) {
+export function MobileComposer({ experts, draft, onDraftChange, selectedExpert, onSelectedExpertChange, onSend, onRecommendationsOpenChange, showRecommendations = true, disabled = false, sending = false, placeholder = "发送消息给我" }: MobileComposerProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const [focused, setFocused] = useState(false)
   const [voice, setVoice] = useState(false)
   const [pressing, setPressing] = useState(false)
   const [pickerOpen, setPickerOpen] = useState(false)
+  // 推荐指令蒙层：点击分类标签打开，标题为分类名，点 X / 空白处 / Esc 关闭
+  const [recommendCategory, setRecommendCategory] = useState<RecommendationCategory | null>(null)
+  const installedExperts = useInstalledExperts()
+  const openExperts = useOpenExperts()
+  const [pickerView, setPickerView] = useState<"add" | "experts">("add")
+  const [expertQuery, setExpertQuery] = useState("")
+  const [searching, setSearching] = useState(false)
   const [uploads, setUploads] = useState<ImageUpload[]>([])
   const timers = useRef(new Map<string, ReturnType<typeof setTimeout>>())
   const hasValue = draft.trim().length > 0
@@ -57,6 +70,8 @@ export function MobileComposer({ experts, draft, onDraftChange, selectedExpert, 
   const expanded = focused || hasValue || Boolean(selectedExpert) || uploads.length > 0
   const locked = disabled || sending
   const selectedVisualKey = experts.find((expert) => expert.label === selectedExpert)?.visualKey
+  // 已选专家标签用与专家列表一致的圆形头像；目录中没有该专家时回退为线性图标
+  const selectedAvatar = expertCatalog.find((expert) => expert.name === selectedExpert)?.avatar
 
   const [textHeight, setTextHeight] = useState(LINE_HEIGHT)
   useLayoutEffect(() => {
@@ -116,51 +131,45 @@ export function MobileComposer({ experts, draft, onDraftChange, selectedExpert, 
     }
   }
 
+  const openRecommendations = (category: RecommendationCategory) => {
+    setRecommendCategory(category)
+    onRecommendationsOpenChange?.(true)
+  }
+  const closeRecommendations = () => {
+    setRecommendCategory(null)
+    onRecommendationsOpenChange?.(false)
+  }
+  useEffect(() => {
+    if (!recommendCategory) return
+    const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") closeRecommendations() }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  })
+
+  const openPicker = () => {
+    setPickerView("add")
+    setExpertQuery("")
+    setSearching(false)
+    setPickerOpen(true)
+  }
+
+  const chooseExpert = (name: string) => {
+    onSelectedExpertChange(name)
+    setPickerOpen(false)
+    setVoice(false)
+    requestAnimationFrame(() => textareaRef.current?.focus())
+  }
+
+  const query = expertQuery.trim()
+  const visibleExperts = query ? installedExperts.filter((expert) => `${expert.name}${expert.role}`.includes(query)) : installedExperts
+
   const exitVoice = () => {
     setVoice(false)
     requestAnimationFrame(() => textareaRef.current?.focus())
   }
 
-  return (
-    <div className="flex flex-col gap-2">
-      <ComposerRecommendations onOpenChange={onRecommendationsOpenChange} disabled={locked} onSelect={item => {
-        onDraftChange(item.prompt)
-        onSelectedExpertChange(item.expert ?? null)
-        setVoice(false)
-        requestAnimationFrame(() => textareaRef.current?.focus())
-      }} />
-
-      {voice ? (
-        <div className="flex h-14 items-center rounded-full border bg-background px-2.5 shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
-          <span className="size-9 shrink-0" aria-hidden="true" />
-          <button
-            type="button"
-            disabled={locked}
-            className={cn("mx-2 h-9 flex-1 touch-none rounded-full text-base font-medium select-none transition-colors disabled:opacity-50", pressing && "bg-muted")}
-            onPointerDown={() => setPressing(true)}
-            onPointerCancel={() => setPressing(false)}
-            onPointerLeave={() => setPressing(false)}
-            onPointerUp={() => {
-              if (!pressing) return
-              setPressing(false)
-              toast.info("语音输入为演示，未接入录音与识别")
-            }}
-          >
-            {pressing ? "松开结束" : "按住说话"}
-          </button>
-          <InputButton label="切换到键盘输入" onClick={exitVoice}><Keyboard /></InputButton>
-        </div>
-      ) : (
-        <div
-          // 单行与多行共用同一结构：只过渡高度与圆角，按钮固定在右下角，避免布局切换造成跳动
-          className={cn(
-            "relative overflow-hidden border bg-background shadow-[0_4px_16px_rgba(0,0,0,0.08)] transition-[height,border-radius] duration-200 ease-out motion-reduce:transition-none",
-            expanded ? "rounded-[24px]" : "rounded-[28px]",
-            locked && "opacity-70",
-          )}
-          style={{ height: boxHeight }}
-        >
-          {uploads.length > 0 && (
+  // 文字模式与按住说话模式共用的附件缩略图区
+  const attachmentList = uploads.length > 0 ? (
             // 关闭按钮外溢 4px：li 右上留 4px，列表顶部 8px，使缩略图距顶 12px、间距 8px
             <ul className="no-scrollbar flex gap-1 overflow-x-auto px-3 pt-2" aria-label="已添加的图片">
               {uploads.map((item) => (
@@ -181,7 +190,71 @@ export function MobileComposer({ experts, draft, onDraftChange, selectedExpert, 
                 </li>
               ))}
             </ul>
+  ) : null
+
+  return (
+    <div className="flex flex-col gap-2">
+      {/* 推荐分类行只在单行且键盘输入状态显示；展开（聚焦 / 有内容 / 有附件或专家）或按住说话时隐藏 */}
+      {showRecommendations && !expanded && !voice && <ComposerRecommendations disabled={locked} onOpen={openRecommendations} />}
+
+      {recommendCategory && (
+        // 蒙层盖住页面与分类标签，输入框保持在蒙层之上可用（参考用户截图：白色磨砂）
+        <button type="button" aria-label="关闭推荐指令" tabIndex={-1} className="fixed inset-0 z-40 bg-background/80 backdrop-blur-xl motion-safe:animate-in motion-safe:fade-in-0" onClick={() => closeRecommendations()} />
+      )}
+      <div className={cn("relative", recommendCategory && "z-50")}>
+      {recommendCategory && (
+        <section role="dialog" aria-modal="false" aria-labelledby={`recommend-${recommendCategory.id}`} className="absolute inset-x-0 bottom-full mb-3 flex max-h-[55dvh] flex-col motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2" onKeyDown={(event) => { if (event.key === "Escape") closeRecommendations() }}>
+          <div className="flex shrink-0 items-center justify-between pl-2">
+            <h2 id={`recommend-${recommendCategory.id}`} className="text-xl leading-7 font-semibold">{recommendCategory.label}</h2>
+            <button type="button" aria-label="关闭推荐指令" className="-mr-1 grid size-11 place-items-center rounded-full" onClick={() => closeRecommendations()}><X className="size-6" /></button>
+          </div>
+          <div className="mt-2 min-h-0 overflow-y-auto">
+            <RecommendationItems category={recommendCategory} disabled={locked} onSelect={(item) => {
+              onDraftChange(item.prompt)
+              onSelectedExpertChange(item.expert ?? null)
+              setVoice(false)
+              closeRecommendations()
+              requestAnimationFrame(() => textareaRef.current?.focus())
+            }} />
+          </div>
+        </section>
+      )}
+
+      {voice ? (
+        // 按住说话模式：有图片时附件区出现在上方、外框变为 24px 圆角，仍保持按住说话（参考用户截图）
+        <div className={cn("overflow-hidden border bg-background shadow-[0_4px_16px_rgba(0,0,0,0.08)]", uploads.length ? "rounded-[24px]" : "rounded-[28px]")}>
+        {attachmentList}
+        <div className="flex h-[54px] items-center px-2.5">
+          {/* 按住说话模式也保留「+」添加入口，位置与文字模式一致 */}
+          <InputButton label="添加图片或专家" disabled={locked} onClick={openPicker}><Plus /></InputButton>
+          <button
+            type="button"
+            disabled={locked}
+            className={cn("mx-2 h-9 flex-1 touch-none rounded-full text-base font-medium select-none transition-colors disabled:opacity-50", pressing && "bg-muted")}
+            onPointerDown={() => setPressing(true)}
+            onPointerCancel={() => setPressing(false)}
+            onPointerLeave={() => setPressing(false)}
+            onPointerUp={() => {
+              if (!pressing) return
+              setPressing(false)
+              toast.info("语音输入为演示，未接入录音与识别")
+            }}
+          >
+            {pressing ? "松开结束" : "按住说话"}
+          </button>
+          <InputButton label="切换到键盘输入" onClick={exitVoice}><Keyboard /></InputButton>
+        </div>
+        </div>
+      ) : (
+        <div
+          // 单行与多行共用同一结构：只过渡高度与圆角，按钮固定在右下角，避免布局切换造成跳动
+          className={cn(
+            "relative overflow-hidden border bg-background shadow-[0_4px_16px_rgba(0,0,0,0.08)] transition-[height,border-radius] duration-200 ease-out motion-reduce:transition-none",
+            expanded ? "rounded-[24px]" : "rounded-[28px]",
           )}
+          style={{ height: boxHeight }}
+        >
+          {attachmentList}
           <div className={cn("transition-[padding] duration-200 ease-out motion-reduce:transition-none", expanded ? "pb-2 pl-5 pr-5 pt-[15px]" : "py-[15px] pl-[54px] pr-14")}>
             <textarea
               ref={textareaRef}
@@ -189,7 +262,7 @@ export function MobileComposer({ experts, draft, onDraftChange, selectedExpert, 
               value={draft}
               disabled={locked}
               aria-label="消息内容"
-              placeholder={placeholder}
+              placeholder={disabled ? "请先处理上方的批准请求" : placeholder}
               className="block max-h-[120px] w-full resize-none bg-transparent text-base leading-6 text-foreground outline-none placeholder:text-muted-foreground/72"
               onChange={(event) => onDraftChange(event.target.value)}
               onFocus={() => setFocused(true)}
@@ -204,7 +277,7 @@ export function MobileComposer({ experts, draft, onDraftChange, selectedExpert, 
           </div>
           {selectedExpert && (
             <span className={cn("absolute bottom-[9px] left-[54px] flex h-9 items-center rounded-full bg-primary-bg px-2 text-sm font-medium text-primary transition-opacity duration-200 motion-reduce:transition-none", expanded ? "opacity-100" : "opacity-0")}>
-              <ExpertLineIcon expert={selectedExpert} visualKey={selectedVisualKey} />
+              {selectedAvatar ? <img src={selectedAvatar} alt="" className="size-5 shrink-0 rounded-full object-cover" /> : <ExpertLineIcon expert={selectedExpert} visualKey={selectedVisualKey} />}
               <span className="px-1.5">{shortExpertLabel(selectedExpert)}</span>
               <button type="button" aria-label={`移除专家 ${selectedExpert}`} disabled={locked} className="-mr-1 grid size-7 place-items-center rounded-full disabled:opacity-50" onPointerDown={(event) => event.preventDefault()} onClick={() => onSelectedExpertChange(null)}>
                 <X aria-hidden="true" className="size-4" />
@@ -212,7 +285,7 @@ export function MobileComposer({ experts, draft, onDraftChange, selectedExpert, 
             </span>
           )}
           <div className="absolute bottom-[9px] left-2.5">
-            <InputButton label="上传图片" disabled={locked} onClick={() => setPickerOpen(true)}><ImageIcon /></InputButton>
+            <InputButton label="添加图片或专家" disabled={locked} onClick={openPicker}><Plus /></InputButton>
           </div>
           <div className="absolute bottom-[9px] right-2.5 flex items-center gap-2">
             <InputButton label="语音输入" disabled={locked} onClick={() => setVoice(true)}><Mic /></InputButton>
@@ -223,15 +296,61 @@ export function MobileComposer({ experts, draft, onDraftChange, selectedExpert, 
         </div>
       )}
 
-      {/* 选择上传方式（Figma 5271:63584）：50% 黑遮罩、24px 顶部圆角、两列 16px 圆角卡片 */}
+      </div>
+
+      {/* 添加面板：上传方式（Figma 5271:63584）+「专家」入口；二级为专家列表（参考用户截图） */}
       <Sheet open={pickerOpen} onOpenChange={setPickerOpen}>
-        <SheetContent side="bottom" showCloseButton={false} overlayClassName="bg-black/50 supports-backdrop-filter:backdrop-blur-none" className="gap-0 rounded-t-3xl border-t-0 px-4 pt-4 pb-[max(32px,env(safe-area-inset-bottom))]">
-          <SheetTitle className="sr-only">选择上传方式</SheetTitle>
-          <SheetDescription className="sr-only">演示环境不会调起相机或相册，将使用本地示例图片</SheetDescription>
-          <div className="grid grid-cols-2 gap-3">
-            <UploadOption icon={<Camera />} label="拍照" onClick={() => addImages(cameraSamples)} />
-            <UploadOption icon={<ImageIcon />} label="从相册选择" onClick={() => addImages(albumSamples, ALBUM_FAIL_ONCE_INDEX)} />
-          </div>
+        <SheetContent side="bottom" showCloseButton={false} overlayClassName="bg-black/50 supports-backdrop-filter:backdrop-blur-none" className={cn("gap-0 rounded-t-3xl border-t-0 pb-[max(24px,env(safe-area-inset-bottom))]", pickerView === "experts" ? "bg-background-mobile px-4 pt-3 data-[side=bottom]:h-[70dvh]" : "px-4 pt-4")}>
+          {pickerView === "add" ? (
+            <>
+              <SheetTitle className="sr-only">添加</SheetTitle>
+              <SheetDescription className="sr-only">上传图片或指定专家。演示环境不会调起相机或相册，将使用本地示例图片</SheetDescription>
+              <div className="grid grid-cols-2 gap-3">
+                <UploadOption icon={<Camera />} label="拍照" onClick={() => addImages(cameraSamples)} />
+                <UploadOption icon={<ImageIcon />} label="从相册选择" onClick={() => addImages(albumSamples, ALBUM_FAIL_ONCE_INDEX)} />
+              </div>
+              <button type="button" className="mt-3 flex min-h-14 w-full items-center gap-3 rounded-2xl px-2 text-left text-base leading-6 text-foreground" onClick={() => setPickerView("experts")}>
+                <Sparkles aria-hidden="true" className="size-5" />
+                <span className="flex-1">专家</span>
+                {selectedExpert && <span className="max-w-32 truncate text-sm text-muted-foreground">{selectedExpert}</span>}
+                <ChevronRight aria-hidden="true" className="size-5 text-muted-foreground" />
+              </button>
+            </>
+          ) : (
+            <>
+              <div className="flex h-12 shrink-0 items-center gap-1">
+                <button type="button" aria-label="返回" className="-ml-2 grid size-11 place-items-center rounded-full" onClick={() => { setPickerView("add"); setExpertQuery(""); setSearching(false) }}><ChevronLeft className="size-6" /></button>
+                {searching ? (
+                  <input autoFocus value={expertQuery} onChange={(event) => setExpertQuery(event.target.value)} aria-label="搜索专家" placeholder="搜索专家" className="h-10 min-w-0 flex-1 rounded-full bg-background px-4 text-base outline-none placeholder:text-muted-foreground" />
+                ) : (
+                  <SheetTitle className="flex-1 text-base font-medium">专家</SheetTitle>
+                )}
+                {!searching && <button type="button" aria-label="搜索专家" className="grid size-11 place-items-center rounded-full" onClick={() => setSearching(true)}><Search className="size-5" /></button>}
+                <button type="button" aria-label="关闭" className="-mr-2 grid size-11 place-items-center rounded-full" onClick={() => setPickerOpen(false)}><X className="size-5" /></button>
+              </div>
+              {searching && <SheetTitle className="sr-only">专家</SheetTitle>}
+              <SheetDescription className="sr-only">选择一位已安装的专家执行你的下一条指令</SheetDescription>
+              <ul className="mt-2 flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto" aria-label="已安装专家">
+                {visibleExperts.map((expert) => {
+                  const selected = expert.name === selectedExpert
+                  return (
+                    <li key={expert.id}>
+                      <button type="button" aria-pressed={selected} className="flex w-full items-center gap-3 rounded-2xl bg-background px-4 py-3 text-left" onClick={() => chooseExpert(expert.name)}>
+                        <img src={expert.avatar} alt="" className="size-11 shrink-0 rounded-full object-cover" />
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-base leading-6 font-medium">{expert.name}</span>
+                          <span className="block truncate text-sm leading-5 text-muted-foreground">{expert.role}</span>
+                        </span>
+                        {selected && <Check aria-hidden="true" className="size-5 shrink-0 text-primary" />}
+                      </button>
+                    </li>
+                  )
+                })}
+                {visibleExperts.length === 0 && <li className="py-10 text-center text-sm text-muted-foreground">没有匹配的专家</li>}
+              </ul>
+              <button type="button" className="mt-3 h-12 w-full shrink-0 rounded-2xl bg-background text-base font-medium text-foreground" onClick={() => { setPickerOpen(false); if (openExperts) openExperts(); else toast.info("当前页面未提供专家列表") }}>查看更多专家</button>
+            </>
+          )}
         </SheetContent>
       </Sheet>
 

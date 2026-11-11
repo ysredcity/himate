@@ -1,0 +1,256 @@
+import { useEffect, useRef, useState, type TouchEvent } from "react"
+import { Tabs } from "@base-ui/react/tabs"
+import { Check, ChevronRight, CircleCheckBig, Info, Menu, MessageCircle, Plus, Search, Store, Trash2, UserRound, UsersRound, X, type LucideIcon } from "lucide-react"
+
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet"
+import { cn } from "@/lib/utils"
+import { ExpertRecommendationBanner } from "./expert-recommendation-banner"
+import { expertCatalog, expertScenes, type Expert } from "./expert-data"
+import { installedExpertIds, personalInstallationCount, SCHEDULED_EXPERT_LIMIT } from "./expert-rules"
+import { GlassAction, glassSurface, glassSurfaceClass } from "./mobile-header"
+
+type ExpertPageProps = {
+  scheduledIds: readonly string[]
+  isSidebarDocked: boolean
+  onOpenSidebar: () => void
+  onAdd: (id: string) => void
+  onRemove: (id: string) => void
+  onSummon: (expert: Expert) => void
+}
+
+type ExpertTab = "market" | "mine" | "scheduled"
+// Tab、说明、空状态文案与桌面 expert-page 一致
+const tabs: { id: ExpertTab; label: string }[] = [{ id: "market", label: "专家市场" }, { id: "mine", label: "我的专家" }, { id: "scheduled", label: "已安装" }]
+const tabIcons: Record<ExpertTab, LucideIcon> = { market: Store, mine: UserRound, scheduled: CircleCheckBig }
+const introductions = {
+  mine: "在智能体管理平台个人空间发布的 AI 助手，会在这里汇集。",
+}
+
+/**
+ * 移动端专家列表页：功能与桌面 ExpertPage 一致（三 Tab、场景筛选、推荐 Banner、详情、安装 / 删除、召唤 / 进入），
+ * 界面按用户截图改为列表行；安装与删除只在详情面板中操作；移动端额外提供搜索。
+ */
+export function ExpertPage({ scheduledIds, isSidebarDocked, onOpenSidebar, onAdd, onRemove, onSummon }: ExpertPageProps) {
+  const [tab, setTab] = useState<ExpertTab>("market")
+  const [scene, setScene] = useState("全部")
+  // 分类切换方向：1 = 切到右侧分类（列表从右滑入），-1 = 切到左侧分类，0 = 初始不播放
+  const [sceneDirection, setSceneDirection] = useState<-1 | 0 | 1>(0)
+  const [detail, setDetail] = useState<Expert | null>(null)
+  const [searching, setSearching] = useState(false)
+  const [query, setQuery] = useState("")
+  const installedIds = installedExpertIds(scheduledIds, expertCatalog)
+  const personalCount = personalInstallationCount(installedIds, expertCatalog)
+  const keyword = query.trim()
+  const matches = (expert: Expert) => !keyword || [expert.name, expert.role, expert.description, ...expert.tags].some((text) => text.includes(keyword))
+  const lists = {
+    market: expertCatalog.filter((expert) => (scene === "全部" || expert.scene === scene) && matches(expert)),
+    mine: expertCatalog.filter((expert) => expert.mine && matches(expert)),
+    scheduled: expertCatalog.filter((expert) => installedIds.includes(expert.id) && matches(expert)),
+  }
+  const summon = (expert: Expert) => { setDetail(null); onSummon(expert) }
+  const closeSearch = () => { setSearching(false); setQuery("") }
+  const searchInputRef = useRef<HTMLInputElement>(null)
+  useEffect(() => { if (searching) searchInputRef.current?.focus() }, [searching])
+
+  // 专家市场：在列表区域左右滑动切换场景分类（左滑下一个、右滑上一个）
+  const sceneLabels = ["全部", ...expertScenes]
+  const sceneBarRef = useRef<HTMLDivElement>(null)
+  const swipeStart = useRef<{ x: number; y: number } | null>(null)
+  useEffect(() => {
+    // 切换后把选中的分类胶囊滚到可见区域
+    // 只改横向滚动位置，不用 scrollIntoView，避免带动列表纵向滚动
+    const bar = sceneBarRef.current
+    const active = bar?.querySelector<HTMLElement>("[aria-pressed='true']")
+    if (!bar || !active) return
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    bar.scrollTo({ left: active.offsetLeft - (bar.clientWidth - active.offsetWidth) / 2, behavior: reduce ? "auto" : "smooth" })
+  }, [scene])
+  const changeScene = (next: string) => {
+    if (next === scene) return
+    setSceneDirection(sceneLabels.indexOf(next) > sceneLabels.indexOf(scene) ? 1 : -1)
+    setScene(next)
+  }
+  const onSwipeStart = (event: TouchEvent) => {
+    // Banner 轮播与分类栏自身有横向滑动，从这两处开始的手势不切换分类
+    const target = event.target as HTMLElement
+    if (event.touches.length !== 1 || target.closest("[data-swipe-ignore]")) { swipeStart.current = null; return }
+    swipeStart.current = { x: event.touches[0].clientX, y: event.touches[0].clientY }
+  }
+  const onSwipeEnd = (event: TouchEvent) => {
+    const start = swipeStart.current
+    swipeStart.current = null
+    if (!start) return
+    const dx = event.changedTouches[0].clientX - start.x
+    const dy = event.changedTouches[0].clientY - start.y
+    // 水平位移超过 56px 且明显大于垂直位移，才算切换手势，避免与上下滚动冲突
+    if (Math.abs(dx) < 56 || Math.abs(dx) < Math.abs(dy) * 1.5) return
+    const index = sceneLabels.indexOf(scene) + (dx < 0 ? 1 : -1)
+    if (index >= 0 && index < sceneLabels.length) changeScene(sceneLabels[index])
+  }
+
+  return (
+    <section aria-label="专家中心" className="relative flex min-w-0 flex-1 flex-col bg-background pb-(--host-bottom-inset,0px)">
+      <Tabs.Root value={tab} onValueChange={(value) => setTab(value as ExpertTab)} className="flex min-h-0 flex-1 flex-col">
+        {/* 顶部栏不透明并压在滚动区之上，避免与吸顶筛选栏之间透出列表内容（2026-11-11） */}
+        <header className="relative z-30 flex h-16 shrink-0 items-center gap-3 bg-background px-4">
+          {!isSidebarDocked && <GlassAction label="展开导航" onClick={onOpenSidebar}><Menu /></GlassAction>}
+          <h1 className={cn("min-w-0 flex-1 truncate text-lg leading-7 font-medium tracking-[-0.18px] transition-opacity", searching && "opacity-0")}>专家</h1>
+          {/*
+            搜索：与左上角菜单 / 对话页右上胶囊同款玻璃外观；点击后在原位置向左展开为搜索框并聚焦，遮住标题。
+            展开宽度 = 页面宽 - 左右 16px - 菜单按钮 48px - 间距 12px。
+          */}
+          <div
+            className={cn(glassSurface, "absolute top-2 right-4 flex h-12 items-center overflow-hidden rounded-full transition-[width] duration-200 ease-out motion-reduce:transition-none")}
+            style={{ width: searching ? `calc(100% - ${isSidebarDocked ? 32 : 92}px)` : 48 }}
+          >
+            {searching ? (
+              <>
+                <Search aria-hidden="true" className="ml-3.5 size-5 shrink-0 text-muted-foreground" />
+                <input ref={searchInputRef} value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => { if (event.key === "Escape") closeSearch() }} aria-label="搜索专家" placeholder="搜索专家名称、能力或描述" className="h-full min-w-0 flex-1 bg-transparent px-2 text-base outline-none placeholder:text-muted-foreground" />
+                <button type="button" aria-label="取消搜索" className="grid size-11 shrink-0 place-items-center rounded-full" onClick={closeSearch}><X className="size-5" /></button>
+              </>
+            ) : (
+              <button type="button" aria-label="搜索专家" className="grid size-12 shrink-0 place-items-center rounded-full text-foreground [&_svg]:size-6" onClick={() => setSearching(true)}><Search /></button>
+            )}
+          </div>
+        </header>
+        {/* 底部留出悬浮 Tab 栏的高度（56px + 上下间距），避免最后一行被遮住 */}
+        <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain pb-24">
+          {tabs.map((item) => (
+            <Tabs.Panel
+              key={item.id}
+              value={item.id}
+              className="min-h-full px-4 pt-2 pb-6 outline-none"
+              onTouchStart={item.id === "market" ? onSwipeStart : undefined}
+              onTouchEnd={item.id === "market" ? onSwipeEnd : undefined}
+              onTouchCancel={item.id === "market" ? () => { swipeStart.current = null } : undefined}
+            >
+              {item.id === "mine" && <p className="text-sm leading-6 text-muted-foreground">{introductions.mine}</p>}
+              {item.id === "scheduled" && (
+                <Alert>
+                  <Info aria-hidden="true" /><AlertTitle>安装说明</AlertTitle>
+                  <AlertDescription>可自行安装 {SCHEDULED_EXPERT_LIMIT} 位专家（已用 {personalCount} 位）。企业默认专家不占名额，且不可删除。</AlertDescription>
+                </Alert>
+              )}
+              {item.id === "market" && <div data-swipe-ignore className="mb-1"><ExpertRecommendationBanner onSelect={setDetail} /></div>}
+              {item.id === "market" && (
+                // 场景筛选：横滑胶囊，选中深灰底白字（参考截图，与桌面选中样式一致）；滚到顶部时吸顶（2026-11-11）
+                // 吸顶层与横滑层分开：外层只负责 sticky 与不透明底色（z-20 高于列表行内按钮），内层负责横向滚动，
+                // 避免把横向滚动容器本身设为 sticky 导致滚动时抖动
+                // -top-px：吸顶时向上多盖 1px，消除宿主缩放下与顶部栏之间的亚像素缝
+                <div className="sticky -top-px z-20 -mx-4 bg-background py-2">
+                  <div ref={sceneBarRef} data-swipe-ignore role="group" aria-label="按场景筛选专家" className="no-scrollbar flex gap-2 overflow-x-auto scroll-px-4 px-4">
+                    {sceneLabels.map((label) => (
+                      <button key={label} type="button" aria-pressed={scene === label} onClick={() => changeScene(label)} className={cn("h-9 shrink-0 rounded-full px-3.5 text-sm whitespace-nowrap", scene === label ? "bg-foreground font-medium text-background" : "bg-muted text-foreground")}>{label}</button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {/* 专家市场切换分类时，列表按切换方向左右滑入并淡入（key 随分类变化以重播动画；减弱动效时不播放） */}
+              <div
+                key={item.id === "market" ? scene : item.id}
+                className={cn(item.id === "market" && sceneDirection !== 0 && "animate-in fade-in-0 duration-250 ease-out motion-reduce:animate-none", sceneDirection > 0 ? "slide-in-from-right-10" : "slide-in-from-left-10")}
+              >
+              <ul className="mt-2 flex flex-col" aria-label={`${item.label}列表`}>
+                {lists[item.id].map((expert) => <ExpertRow key={expert.id} expert={expert} onDetail={() => setDetail(expert)} onSummon={() => summon(expert)} />)}
+              </ul>
+              {lists[item.id].length === 0 && (
+                <div className="mt-4 flex min-h-56 flex-col items-center justify-center gap-3 rounded-2xl border border-dashed bg-card px-4 text-center">
+                  <UsersRound className="size-8 text-muted-foreground" />
+                  <p className="font-medium">{keyword ? "没有找到相关专家" : item.id === "scheduled" ? "还没有安装的专家" : item.id === "mine" ? "还没有发布的专家" : "暂无符合条件的专家"}</p>
+                  <p className="text-sm text-muted-foreground">{keyword ? "换个关键词试试。" : item.id === "scheduled" ? "从专家市场或我的专家中安装，最多自行安装 20 位。" : "试试调整筛选条件，或稍后再来查看。"}</p>
+                  {item.id === "scheduled" && !keyword && <button type="button" className="h-10 rounded-full border px-4 text-sm font-medium" onClick={() => setTab("market")}>去专家市场</button>}
+                </div>
+              )}
+              </div>
+            </Tabs.Panel>
+          ))}
+        </div>
+        {/* 一级 Tab：底部悬浮玻璃栏（参考用户截图与工作台首页底部输入区），位于 Home Indicator 上方；背景 45%，比首页输入胶囊更通透 */}
+        <Tabs.List aria-label="专家列表" className={cn(glassSurfaceClass, "bg-background/45 absolute bottom-[calc(var(--host-bottom-inset,0px)+12px)] left-1/2 z-30 grid h-14 w-[min(288px,calc(100%-64px))] -translate-x-1/2 grid-cols-3 rounded-full p-1")}>
+          {/* 选中填充：Base UI Indicator 提供当前 Tab 相对位置，切换时色块滑到目标 Tab（减弱动效时直接跳转） */}
+          <Tabs.Indicator className="absolute top-(--active-tab-top) left-(--active-tab-left) h-(--active-tab-height) w-(--active-tab-width) rounded-full bg-foreground/5 transition-[left,width] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none" />
+          {tabs.map((item) => {
+            const Icon = tabIcons[item.id]
+            return (
+              <Tabs.Tab key={item.id} value={item.id} className="relative z-10 flex flex-col items-center justify-center gap-0.5 rounded-full text-xs leading-4 text-muted-foreground outline-none transition-colors duration-300 focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none data-active:font-medium data-active:text-foreground [&_svg]:size-[22px]">
+                <Icon aria-hidden="true" />
+                <span>{item.label}{item.id === "scheduled" && ` ${installedIds.length}`}</span>
+              </Tabs.Tab>
+            )
+          })}
+        </Tabs.List>
+      </Tabs.Root>
+
+      {/* 详情：底部面板，内容与桌面详情弹窗一致；安装 / 删除只在这里操作 */}
+      <Sheet open={Boolean(detail)} onOpenChange={(open) => { if (!open) setDetail(null) }}>
+        <SheetContent side="bottom" showCloseButton={false} overlayClassName="bg-black/50 supports-backdrop-filter:backdrop-blur-none" className="gap-0 rounded-t-3xl data-[side=bottom]:h-[80dvh] border-t-0 pt-5 pb-[max(24px,env(safe-area-inset-bottom))]">
+          {/* 统一高度 80dvh，不随内容长短变化：内容区独立滚动，操作按钮固定在底部 */}
+          {detail && (
+            <>
+              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5">
+              <div className="flex items-start gap-3">
+                <img src={detail.avatar} alt="" className="size-16 shrink-0 rounded-2xl object-cover" />
+                <div className="min-w-0 flex-1 pt-1">
+                  <SheetTitle className="text-lg leading-7 font-semibold">{detail.name}</SheetTitle>
+                  <p className="text-sm leading-5 text-muted-foreground">{detail.scene}</p>
+                </div>
+                <button type="button" aria-label="关闭" className="-mt-1 -mr-2 grid size-11 shrink-0 place-items-center rounded-full" onClick={() => setDetail(null)}><X className="size-5" /></button>
+              </div>
+              <SheetDescription className="mt-4 text-base leading-6 text-foreground">{detail.description}</SheetDescription>
+              <dl className="mt-4 grid grid-cols-[64px_1fr] gap-x-4 gap-y-3 text-sm leading-5">
+                <dt className="text-muted-foreground">适用角色</dt><dd>{detail.role}</dd>
+                <dt className="text-muted-foreground">场景</dt><dd>{detail.scene}</dd>
+                <dt className="text-muted-foreground">来源</dt><dd>{detail.source}{detail.mine && " · 个人空间发布"}</dd>
+                <dt className="text-muted-foreground">调用方式</dt><dd>{detail.canSummon ? "支持直接召唤" : "独立页面入口"}</dd>
+                <dt className="text-muted-foreground">能力</dt><dd className="flex flex-wrap gap-1.5">{detail.tags.map((tag) => <span key={tag} className="rounded bg-muted px-2 py-0.5">{tag}</span>)}</dd>
+              </dl>
+              </div>
+              <DetailActions expert={detail} installed={installedIds.includes(detail.id)} removable={tab === "scheduled"} onInstall={() => onAdd(detail.id)} onRemove={() => { onRemove(detail.id); setDetail(null) }} onSummon={() => summon(detail)} />
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
+    </section>
+  )
+}
+
+/** 列表行（参考截图）：56px 头像、名称、能力标签（竖线分隔）、一行描述，右侧召唤 / 进入 */
+function ExpertRow({ expert, onDetail, onSummon }: { expert: Expert; onDetail: () => void; onSummon: () => void }) {
+  return (
+    <li className="relative flex items-center gap-3 py-3">
+      <button type="button" aria-label={`查看${expert.name}详情`} onClick={onDetail} className="absolute inset-0 rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+      <img src={expert.avatar} alt="" loading="lazy" className="pointer-events-none size-14 shrink-0 rounded-full object-cover" />
+      <div className="pointer-events-none min-w-0 flex-1">
+        <h2 className="truncate text-base leading-6 font-medium">{expert.name}</h2>
+        <p className="truncate text-sm leading-5 text-muted-foreground">{expert.tags.join(" | ")}</p>
+        <p className="truncate text-sm leading-5 text-muted-foreground">{expert.description}</p>
+      </div>
+      {/* 与桌面一致：可召唤为 primary「召唤」，否则为 secondary「进入」且不跳转 */}
+      <button type="button" aria-label={`${expert.canSummon ? "召唤" : "进入"}${expert.name}`} onClick={expert.canSummon ? onSummon : undefined} className={cn("relative z-10 h-9 shrink-0 rounded-full px-4 text-sm font-medium", expert.canSummon ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground")}>
+        {expert.canSummon ? "召唤" : "进入"}
+      </button>
+    </li>
+  )
+}
+
+/** 详情操作：规则与桌面 ExpertActions 一致；移动端无 Tooltip，安装状态直接显示文字 */
+function DetailActions({ expert, installed, removable, onInstall, onRemove, onSummon }: { expert: Expert; installed: boolean; removable: boolean; onInstall: () => void; onRemove: () => void; onSummon: () => void }) {
+  const canRemove = removable && !expert.enterpriseDefault
+  const isInstalled = installed || Boolean(expert.enterpriseDefault)
+  const locked = Boolean(expert.enterpriseDefault) || (isInstalled && !canRemove)
+  const label = expert.enterpriseDefault ? "企业默认安装" : canRemove ? "删除" : isInstalled ? "已安装" : "安装"
+  return (
+    <div role="group" aria-label={`${expert.name}操作`} className="flex shrink-0 gap-3 px-5 pt-4">
+      {expert.canSummon && (
+        <button type="button" disabled={locked} aria-label={`${label}${expert.name}`} onClick={locked ? undefined : canRemove ? onRemove : onInstall} className={cn("flex h-12 flex-1 items-center justify-center gap-1.5 rounded-full border text-base font-medium disabled:opacity-50 [&_svg]:size-5", canRemove && "text-destructive-foreground")}>
+          {canRemove ? <Trash2 /> : isInstalled ? <Check /> : <Plus />}{label}
+        </button>
+      )}
+      <button type="button" aria-label={`${expert.canSummon ? "召唤" : "进入"}${expert.name}`} onClick={expert.canSummon ? onSummon : undefined} className={cn("flex h-12 flex-1 items-center justify-center gap-1.5 rounded-full text-base font-medium [&_svg]:size-5", expert.canSummon ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground")}>
+        {expert.canSummon ? "召唤" : "进入"}{expert.canSummon ? <MessageCircle aria-hidden="true" /> : <ChevronRight aria-hidden="true" />}
+      </button>
+    </div>
+  )
+}

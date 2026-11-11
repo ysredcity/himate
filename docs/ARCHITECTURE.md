@@ -92,7 +92,7 @@ AgentShell持有页面选择、scheduledExpertIds（默认企业hr / travel，�
 
 ## 移动宿主预览边界
 
-`apps/mobile/src/main.tsx` 根据 `preview=web` 选择产品App或默认HostPreviewLayout。`src/preview/host-preview-layout.tsx` 与 `host-preview.css` 管理系统状态栏、工作台导航、飞书Tab栏和宿主说明；通过同源iframe加载纯网页入口，不与产品共享状态。App.tsx只管理HiMate首页、对话、输入与产物弹窗。产品页面不设返回按钮；宿主 header 返回按钮通过 `src/preview/host-bridge.ts` 的同源 postMessage 通知产品逐层返回，产品无可返回层级时宿主显示说明，见 [ADR 0009](decisions/0009-host-back-navigation.md)。明暗主题由宿主 header 切换，经同一协议的 `himate:theme` 下发给产品，宿主内抽屉不再显示切换；飞书 Tab 栏为 Token + `public/host-tabs/` 图标分层，见 [ADR 0010](decisions/0010-host-theme-control.md)。详见 [ADR 0007](decisions/0007-mobile-host-preview-container.md)。
+`apps/mobile/src/main.tsx` 根据 `preview=web` 选择产品App或默认HostPreviewLayout。`src/preview/host-preview-layout.tsx` 与 `host-preview.css` 管理系统状态栏、工作台导航、飞书Tab栏和宿主说明；通过同源iframe加载纯网页入口，不与产品共享状态。App.tsx只管理HiMate首页、对话、输入与产物弹窗。产品页面不设返回按钮；宿主 header 返回按钮通过 `src/preview/host-bridge.ts` 的同源 postMessage 通知产品逐层返回，产品无可返回层级时宿主显示说明，见 [ADR 0009](decisions/0009-host-back-navigation.md)。底部 Tab 栏显隐由产品经 `himate:tab-bar` 告知宿主（仅首页显示）。明暗主题由宿主 header 切换，经同一协议的 `himate:theme` 下发给产品，宿主内抽屉不再显示切换；飞书 Tab 栏为 Token + `public/host-tabs/` 图标分层，见 [ADR 0010](decisions/0010-host-theme-control.md)。详见 [ADR 0007](decisions/0007-mobile-host-preview-container.md)。
 
 专家能力以canSummon统一约束：expert-data.ts导出summonableExperts供app-config和Composer专家视觉映射使用；桌面Composer专家菜单由AgentShell按installedExpertIds覆盖config.composerExpertOptions，只列已安装专家，并经ChatWorkspace → 首页 / 对话页 → ConversationSection把onBrowseExperts传给Composer，用于“查看更多专家”打开目录。安装规范化、计额和自动匹配过滤不可召唤专家，安装函数额外返回unsupported；界面无安装入口不替代领域校验。初始5位均支持召唤。
 
@@ -114,6 +114,8 @@ App.tsx → AgentShell（会话列表、共用抽屉、深浅色、产物生命�
 | 产物内容 | `panel-data.ts`（示例图片在 `public/samples/`） |
 | 头像与图标映射 | `resource-visuals.tsx`、`icon-registry.ts` |
 | 首页与 Agent 页切换、返回 | `agent-shell.tsx`、`chat-workspace.tsx` |
+| 移动端专家列表页、轮播、详情 | `expert-page.tsx`、`expert-recommendation-banner.tsx`；名单状态在 `agent-shell.tsx`，经 `expert-context.ts` 供 Composer 读取 |
+| 专家数据与规则（桌面 `expert-data.ts` / `expert-rules.ts` 逐字副本，修改时两端同步） | `expert-data.ts`、`expert-rules.ts`；测试 `apps/mobile/scripts/tests/expert-rules.test.ts`；头像在 `public/figma-home`，Banner 在 `public/generated-banners` |
 | 移动端顶栏玻璃按钮 / 胶囊 | `mobile-header.tsx`（新对话页、对话页共用） |
 | 移动端 Composer（新对话页与对话页共用） | `mobile-composer.tsx`；接入在 `new-conversation-page.tsx`、`conversation-section.tsx`。模板 `composer.tsx` 只保留类型与 PC 实现，移动端不渲染 |
 

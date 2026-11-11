@@ -2,7 +2,7 @@
 
 - 更新时间：2026-11-09（Asia/Shanghai）
 - 状态：移动端阶段性完成；桌面端专项开发中（本轮：左侧导航收起改为图标栏）。
-- 当前分支：`feat/home-agents-figma`，已推送到 `origin/feat/home-agents-figma`（2026-11-09 提交 `ea0b263`，含此前全部桌面、移动、治理改动）。2026-11-09 已快进合并到 `main` 并推送，`main` 与 `origin/main` 一致。`apps/desktop-web/.wbapp_7UjS5tv1ZodAgwr2UUfpui.genie` 是 WorkBuddy 发布配置（保留供本机继续发布到同一链接），已由根 `.gitignore` 的 `*.genie` 忽略。
+- 当前分支：`feat/home-agents-figma`，已推送到 `origin/feat/home-agents-figma`（2026-11-09 提交 `ea0b263`，含此前全部桌面、移动、治理改动）。2026-11-09 已快进合并到 `main` 并推送。2026-11-11 再次提交桌面（专家页搜索、图标栏顶部头像、Composer 专家头像）与另一对话完成的移动专家目录等改动，`main` 与 `feat/home-agents-figma` 同步推送。`.ued-tmp/` 为本地检查材料，已忽略。`apps/desktop-web/.wbapp_7UjS5tv1ZodAgwr2UUfpui.genie` 是 WorkBuddy 发布配置（保留供本机继续发布到同一链接），已由根 `.gitignore` 的 `*.genie` 忽略。
 - 截至 2026-11-08 22:50 的逐轮完整记录已归档到 [archive/context-2026-11-08](../archive/context-2026-11-08/current.md)，需要追溯细节时再读。
 
 ## 当前产品
@@ -17,9 +17,9 @@ HiMate 是员工智能工作台的前端 Mock Demo，无后端、鉴权、持久
 - 专家目录（侧栏 graduation-cap 入口）：市场 / 我的专家 / 已安装三个 Tab，15 条示例（4 条个人发布）。10 位可召唤且可安装，5 位仅「进入」不可安装；个人安装上限 20 位，另有 2 位企业默认（不计额、不可删除），初始已安装 5 位。名单内按本地关键词自动匹配，手动指定优先。Composer 专家菜单只列已安装专家，底部「查看更多专家」打开目录。规则在 `expert-rules.ts`，有 6 项 Node 测试。见 ADR 0005、0006。
 - 专家推荐 Banner（`expert-recommendation-banner.tsx`）：180px，3 张主题背景 WebP（生成说明 `docs/reference/expert-banner-generation.md`），5 秒自动轮播、分页长条、悬停出现的左右翻页按钮。
 
-### 移动端 `apps/mobile/`（本阶段已完成，暂不改动）
+### 移动端 `apps/mobile/`
 
-402px 基准的工作台首页（宿主预览壳 + iframe），Agent 模式新对话 / 对话页（独立 MobileComposer：推荐分类、专家、图片上传演示、语音演示），宿主 header 负责返回与明暗切换，飞书 Tab 栏分层。决策见 ADR 0004、0007–0010，规则见 [设计契约](../DESIGN.md)「独立移动端首页」与「移动端 Agent 模式」。
+402px 基准的工作台首页（宿主预览壳 + iframe），Agent 模式新对话 / 对话页（独立 MobileComposer：推荐分类、「+」面板内的图片上传演示与「专家」列表、语音演示；专家数据为桌面副本），宿主 header 负责返回与明暗切换，飞书 Tab 栏分层且只在首页显示；全局无悬停样式与 Tooltip（2026-11-08）。2026-11-10 新增专家列表页（抽屉入口、三 Tab、Banner、搜索、详情安装、召唤），专家数据 / 规则 / 测试为桌面副本。决策见 ADR 0004、0007–0011，规则见 [设计契约](../DESIGN.md)「独立移动端首页」与「移动端 Agent 模式」。
 
 ## 工程与运行
 

@@ -8,9 +8,10 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "check:tokens": "node scripts/check-tokens.mjs",
-    "gate": "npm run lint && npm run check:scripts && npm run check:tokens && npm run build",
+    "gate": "npm run lint && npm run test:experts && npm run check:scripts && npm run check:tokens && npm run build",
     "preview": "vite preview --host 127.0.0.1 --port 4174 --strictPort",
-    "check:scripts": "node scripts/agent-ux/check-scripts.mjs --template-dir ."
+    "check:scripts": "node scripts/agent-ux/check-scripts.mjs --template-dir .",
+    "test:experts": "node --experimental-strip-types --test scripts/tests/expert-rules.test.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

@@ -106,6 +106,7 @@
 }
 
 .host-preview {
+  position: relative;
   width: 100%;
   max-width: var(--mobile-design-width);
   height: 100dvh;
@@ -130,4 +131,21 @@
 .host-preview-footer {
   padding-bottom: env(safe-area-inset-bottom);
   background: var(--background);
+}
+/*
+ * 新对话 / 对话页：不显示飞书 Tab 栏，只把系统 Home Indicator 透明叠在网页底部 34px 区域（设计稿 ComposerMobile）。
+ * 网页延伸到屏幕底部，面板与页面背景连续，无分隔线；产品自身底部预留 34px（见 AgentShell --host-bottom-inset）。
+ */
+.host-home-only {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 34px;
+  background: transparent;
+  pointer-events: none;
+  z-index: 1;
+}
+.host-home-only .host-home-indicator {
+  background: var(--foreground);
 }

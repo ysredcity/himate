@@ -1,5 +1,5 @@
 {
-  "source": "imagegen; AI-generated fictional demo news imagery",
+  "source": "imagegen; AI-generated fictional demo news imagery；expert-*.webp 复制自 desktop-web（生成说明见 docs/reference/expert-banner-generation.md）",
   "assets": [
     {
       "file": "smart-living.png",
@@ -8,6 +8,18 @@
     {
       "file": "smart-manufacturing.png",
       "bytes": 2025744
+    },
+    {
+      "file": "expert-business.webp",
+      "bytes": 28632
+    },
+    {
+      "file": "expert-hr.webp",
+      "bytes": 30324
+    },
+    {
+      "file": "expert-travel.webp",
+      "bytes": 33084
     }
   ]
 }

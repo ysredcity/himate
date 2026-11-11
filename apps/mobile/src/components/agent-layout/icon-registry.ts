@@ -1,15 +1,4 @@
-import {
-  Blocks,
-  Bot,
-  CalendarClock,
-  FileText,
-  FolderOpen,
-  MessageSquarePlus,
-  MessageSquareText,
-  Plug,
-  Puzzle,
-  type LucideIcon,
-} from "lucide-react"
+import { Bot, CalendarClock, FileText, FolderOpen, MessageSquarePlus, MessageSquareText, Plug, Puzzle, type LucideIcon, GraduationCap } from "lucide-react"
 
 export type ContextType =
   | "upload"
@@ -21,7 +10,8 @@ export type ContextType =
 
 export const navigationIcons = {
   newConversation: MessageSquarePlus,
-  capabilityHub: Blocks,
+  // 移动端用作「专家」入口，与桌面同为 graduation-cap
+  capabilityHub: GraduationCap,
   scheduledTask: CalendarClock,
   fileLibrary: FolderOpen,
 } satisfies Record<string, LucideIcon>

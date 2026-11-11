@@ -1,4 +1,4 @@
-import { summonableExperts } from "./expert-data"
+import { expertCatalog, summonableExperts } from "./expert-data"
 import { homeAssets } from "./home-data"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { ArrowUp, ArrowUpRight, ChevronDown, ChevronLeft, ChevronRight, ExternalLink, Mic, Plus, Upload, X } from "lucide-react"
@@ -34,6 +34,8 @@ const inlineContextTypes = ["文件库", "最近的对话", "技能"] as const
 type InlineContextType = (typeof inlineContextTypes)[number]
 
 const defaultExpertOptions = summonableExperts.map((expert) => expert.name)
+/** 专家头像图片与专家页一致，按名称从目录取 */
+const expertAvatarSrc = (name: string) => expertCatalog.find((expert) => expert.name === name)?.avatar
 type ContextMenu = { label: Exclude<ContextType, "upload" | "连接器">; items: string[] }
 
 const defaultContextMenus: ContextMenu[] = [
@@ -358,7 +360,7 @@ export function Composer({ appearance = "welcome", placeholder = "发送消息�
             {showConnectorSelect ? <ConnectorMenu disabled={interactionsDisabled} enabled={enabledConnectors} onEnabledChange={setEnabledConnectors} /> : null}
             {experts.map((expert) => (
               <span key={expert.id} className="flex h-9 shrink-0 items-center gap-1 rounded-full bg-primary-bg px-2 text-sm font-medium text-primary">
-                <ExpertAvatar expert={expert.label} visualKey={expertVisualKeys?.[expert.label] ?? summonableExperts.find((item) => item.name === expert.label)?.visualKey} className="size-5 [&_svg]:size-3" /><span className="px-0.5">{expert.label}</span>
+                <ExpertAvatar expert={expert.label} src={expertAvatarSrc(expert.label)} visualKey={expertVisualKeys?.[expert.label] ?? summonableExperts.find((item) => item.name === expert.label)?.visualKey} className="size-5 rounded-full [&_svg]:size-3" /><span className="px-0.5">{expert.label}</span>
                 <button type="button" disabled={interactionsDisabled} aria-label={`移除${expert.label}`} className="rounded-full hover:bg-primary/10" onClick={() => setExpert(null)}><X className="size-4" /></button>
               </span>
             ))}
@@ -585,7 +587,7 @@ function AddContextMenu({ menuSide, menus, expertVisualKeys, disabled, onLocalUp
               <DropdownMenuSubTrigger><ContextIcon />{label}</DropdownMenuSubTrigger>
               <DropdownMenuSubContent className="w-44 rounded-2xl [&_[data-slot=dropdown-menu-item]]:rounded-[10px]">
                 {items.map((item) => <DropdownMenuItem key={item} onClick={() => onSelect(item, label)}>
-                  {label === "文件库" ? <LibraryFileIcon fileName={item} /> : label === "专家" ? <ExpertAvatar expert={item} visualKey={expertVisualKeys?.[item]} /> : <ContextIcon />}
+                  {label === "文件库" ? <LibraryFileIcon fileName={item} /> : label === "专家" ? <ExpertAvatar expert={item} src={expertAvatarSrc(item)} visualKey={expertVisualKeys?.[item]} className="size-5 rounded-full" /> : <ContextIcon />}
                   <span className="min-w-0 truncate">{item}</span>
                 </DropdownMenuItem>)}
                 {label === "专家" && onBrowseExperts && <>

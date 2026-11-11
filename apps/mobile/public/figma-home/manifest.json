@@ -250,6 +250,41 @@
       "name": "imgScanLine",
       "file": "3671b.svg",
       "bytes": 2120
+    },
+    {
+      "name": "expertHr",
+      "file": "713b5.png",
+      "bytes": 77452
+    },
+    {
+      "name": "expertTravel",
+      "file": "bb2c3.png",
+      "bytes": 71431
+    },
+    {
+      "name": "expertIt",
+      "file": "6588c.png",
+      "bytes": 79259
+    },
+    {
+      "name": "expertProcurement",
+      "file": "f76cf.png",
+      "bytes": 83510
+    },
+    {
+      "name": "expertProject",
+      "file": "0542d.png",
+      "bytes": 67975
+    },
+    {
+      "name": "expertDocument",
+      "file": "f4264.png",
+      "bytes": 683847
+    },
+    {
+      "name": "expertMeeting",
+      "file": "8258e.png",
+      "bytes": 23891
     }
   ],
   "designWidth": 402

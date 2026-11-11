@@ -1,10 +1,11 @@
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { Tabs } from "@base-ui/react/tabs"
-import { Check, ChevronRight, IndentIncrease, Info, MessageCircle, Plus, Trash2, UsersRound } from "lucide-react"
+import { Check, ChevronRight, IndentIncrease, Info, MessageCircle, Plus, Search, Trash2, UsersRound, X } from "lucide-react"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { ExpertRecommendationBanner } from "./expert-recommendation-banner"
@@ -23,6 +24,13 @@ type ExpertPageProps = {
 
 type ExpertTab = "market" | "mine" | "scheduled"
 const tabs: { id: ExpertTab; label: string }[] = [{ id: "market", label: "专家市场" }, { id: "mine", label: "我的专家" }, { id: "scheduled", label: "已安装" }]
+/** 搜索只匹配卡片与详情里可见的资料：名称、适用角色、简介、场景和能力标签 */
+function matchesQuery(expert: Expert, query: string) {
+  const keyword = query.trim().toLowerCase()
+  if (!keyword) return true
+  return [expert.name, expert.role, expert.description, expert.scene, ...expert.tags].some((text) => text.toLowerCase().includes(keyword))
+}
+
 const introductions = {
   mine: "在智能体管理平台个人空间发布的 AI 助手，会在这里汇集。",
 }
@@ -31,13 +39,22 @@ export function ExpertPage({ scheduledIds, isSidebarDocked, onOpenSidebar, onAdd
   const [tab, setTab] = useState<ExpertTab>("market")
   const [scene, setScene] = useState("全部")
   const [detail, setDetail] = useState<Expert | null>(null)
+  const [query, setQuery] = useState("")
+  const searchRef = useRef<HTMLInputElement>(null)
   const installedIds = installedExpertIds(scheduledIds, expertCatalog)
   const personalCount = personalInstallationCount(installedIds, expertCatalog)
-  const lists = {
+  const baseLists = {
     market: expertCatalog.filter((expert) => (scene === "全部" || expert.scene === scene)),
     mine: expertCatalog.filter((expert) => expert.mine),
     scheduled: expertCatalog.filter((expert) => installedIds.includes(expert.id)),
   }
+  // 搜索只作用于列表：Banner、分类筛选、说明文字保持不变；关键词在三个 Tab 间共用。
+  const lists = {
+    market: baseLists.market.filter((expert) => matchesQuery(expert, query)),
+    mine: baseLists.mine.filter((expert) => matchesQuery(expert, query)),
+    scheduled: baseLists.scheduled.filter((expert) => matchesQuery(expert, query)),
+  }
+  const clearSearch = () => { setQuery(""); searchRef.current?.focus() }
   const summon = (expert: Expert) => { setDetail(null); onSummon(expert) }
 
   return <section aria-label="专家中心" className="@container/experts flex min-w-0 flex-1 flex-col bg-background-desktop [@media(pointer:coarse)]:[&_button]:min-h-11 [@media(pointer:coarse)]:[&_button]:min-w-11">
@@ -50,6 +67,11 @@ export function ExpertPage({ scheduledIds, isSidebarDocked, onOpenSidebar, onAdd
           {item.label}{item.id === "scheduled" && <span className="font-normal">{installedIds.length}</span>}
         </Tabs.Tab>)}
       </Tabs.List>
+      <div role="search" className="relative w-60 shrink-0 max-[899px]:w-44 max-[659px]:w-36">
+        <Search aria-hidden="true" className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+        <Input ref={searchRef} type="search" value={query} placeholder="搜索专家" aria-label="搜索当前列表中的专家" className="bg-card pr-8 pl-8 [&::-webkit-search-cancel-button]:hidden" onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => { if (event.key === "Escape" && query) { event.preventDefault(); setQuery("") } }} />
+        {query && <button type="button" aria-label="清空搜索" className="absolute top-1/2 right-1.5 grid size-5 -translate-y-1/2 place-items-center rounded-md text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring" onClick={clearSearch}><X className="size-3.5" /></button>}
+      </div>
     </header>
     <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6 max-[659px]:px-4">
       <div className="mx-auto max-w-[1240px]">
@@ -68,7 +90,12 @@ export function ExpertPage({ scheduledIds, isSidebarDocked, onOpenSidebar, onAdd
             <div className="mt-5 grid grid-cols-1 gap-3 @min-[660px]/experts:grid-cols-2 @min-[1000px]/experts:grid-cols-3 @min-[1320px]/experts:grid-cols-4">
               {lists[item.id].map((expert) => <ExpertCard key={expert.id} expert={expert} scheduled={installedIds.includes(expert.id)} removable={item.id === "scheduled"} onDetail={() => setDetail(expert)} onAdd={() => onAdd(expert.id)} onRemove={() => onRemove(expert.id)} onSummon={() => summon(expert)} />)}
             </div>
-            {lists[item.id].length === 0 && <div className="mt-6 flex min-h-64 flex-col items-center justify-center gap-3 rounded-2xl border border-dashed bg-card text-center">
+            {query.trim() && baseLists[item.id].length > 0 && lists[item.id].length === 0 && <div role="status" className="mt-6 flex min-h-64 flex-col items-center justify-center gap-2 px-4 text-center">
+              <p className="text-base font-medium text-muted-foreground">未找到符合筛选的内容</p>
+              <p className="text-sm text-muted-foreground">{item.id === "market" ? "尝试切换分类或清空搜索。" : "尝试更换关键词或清空搜索。"}</p>
+              <Button className="mt-3 rounded-full bg-foreground px-4 text-background hover:bg-foreground/90" onClick={clearSearch}>清空筛选</Button>
+            </div>}
+            {baseLists[item.id].length === 0 && <div className="mt-6 flex min-h-64 flex-col items-center justify-center gap-3 rounded-2xl border border-dashed bg-card text-center">
               <UsersRound className="size-8 text-muted-foreground" />
               <p className="font-medium">{item.id === "scheduled" ? "还没有安装的专家" : item.id === "mine" ? "还没有发布的专家" : "暂无符合条件的专家"}</p>
               <p className="px-4 text-sm text-muted-foreground">{item.id === "scheduled" ? "从专家市场或我的专家中安装，最多自行安装 20 位。" : "试试调整筛选条件，或稍后再来查看。"}</p>

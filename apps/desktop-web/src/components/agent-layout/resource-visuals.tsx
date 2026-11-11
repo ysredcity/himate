@@ -51,7 +51,9 @@ export function LibraryFileIcon({ className, fileName }: { className?: string; f
   return <FileIcon aria-hidden="true" className={cn("size-4 shrink-0", className)} />
 }
 
-export function ExpertAvatar({ className, expert, visualKey }: { className?: string; expert?: string; visualKey?: ExpertVisualKey }) {
+/** src 为专家目录里的头像图片；提供时优先显示图片，与专家页卡片保持一致 */
+export function ExpertAvatar({ className, expert, visualKey, src }: { className?: string; expert?: string; visualKey?: ExpertVisualKey; src?: string }) {
+  if (src) return <img data-slot="expert-avatar" src={src} alt="" aria-hidden="true" className={cn("size-6 shrink-0 rounded-md object-cover", className)} />
   const resolvedVisualKey = visualKey ?? (expert ? expertVisualKeys[expert] : undefined)
   const visual = resolvedVisualKey ? expertVisuals[resolvedVisualKey] : defaultExpertVisual
   const ExpertIcon = visual.icon

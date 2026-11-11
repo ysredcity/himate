@@ -6,6 +6,7 @@ import { assets } from "../assets";
 import {
   BACK_STATE,
   HOST_BACK,
+  TAB_BAR,
   THEME,
   THEME_STORAGE_KEY,
   isHostBridgeMessage,
@@ -35,6 +36,8 @@ export function HostPreviewLayout() {
   const [productCanGoBack, setProductCanGoBack] = useState(false);
   // 明暗主题由宿主容器控制：宿主自身切换，并同步给 iframe 内的产品
   const [darkMode, setDarkMode] = useState(readStoredDarkMode);
+  // 底部飞书 Tab 栏：产品处于工作台首页时显示，进入新对话 / 对话页后隐藏（只留系统 Home Indicator）
+  const [tabBarVisible, setTabBarVisible] = useState(true);
   const webviewRef = useRef<HTMLIFrameElement>(null);
 
   const syncTheme = (dark: boolean) =>
@@ -52,11 +55,13 @@ export function HostPreviewLayout() {
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
       if (
-        isHostBridgeMessage(event) &&
-        event.data.type === BACK_STATE &&
-        event.source === webviewRef.current?.contentWindow
+        !isHostBridgeMessage(event) ||
+        event.source !== webviewRef.current?.contentWindow
       )
+        return;
+      if (event.data.type === BACK_STATE)
         setProductCanGoBack(event.data.canGoBack);
+      if (event.data.type === TAB_BAR) setTabBarVisible(event.data.visible);
     };
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
@@ -111,6 +116,11 @@ export function HostPreviewLayout() {
         onLoad={() => syncTheme(darkMode)}
       />
       <footer className="host-preview-footer">
+        {!tabBarVisible ? (
+          <div className="host-home-only" aria-hidden="true">
+            <span className="host-home-indicator" />
+          </div>
+        ) : (
         <nav className="host-nav" aria-label="飞书宿主导航示意">
           {tabs.map((tab, index) => (
             <button
@@ -136,6 +146,7 @@ export function HostPreviewLayout() {
           ))}
           <span className="host-home-indicator" aria-hidden="true" />
         </nav>
+        )}
       </footer>
       {notice && (
         <Sheet title={notice} onClose={() => setNotice(null)}>

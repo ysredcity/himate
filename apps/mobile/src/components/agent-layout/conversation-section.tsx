@@ -90,6 +90,7 @@ export function ConversationSection({
           quickExpertIds={composerQuickExpertIds}
           sending={sending}
           disabled={awaitingApproval}
+          showRecommendations={false}
           draft={draft}
           onDraftChange={setDraft}
           selectedExpert={expert}

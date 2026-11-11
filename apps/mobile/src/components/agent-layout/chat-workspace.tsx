@@ -10,6 +10,8 @@ type ChatWorkspaceProps = {
   config: AppConfig
   createDraftScene: import("@/agent-ui/immersive/contracts").ImmersiveDraftSceneFactory
   activeConversation: Conversation | null
+  /** HiMate 移动端：从专家页召唤的专家，新对话页按 key 重置并预选 */
+  summonedExpert?: { name: string; key: number } | null
   activeConversationPinned: boolean
   isSidebarDocked: boolean
   onNewChat: () => void
@@ -27,6 +29,7 @@ export function ChatWorkspace({
   config,
   createDraftScene,
   activeConversation,
+  summonedExpert,
   activeConversationPinned,
   isSidebarDocked,
   onNewChat,
@@ -40,7 +43,7 @@ export function ChatWorkspace({
 }: ChatWorkspaceProps) {
   return (
     <section className={cn(
-      "flex min-w-0 flex-1 flex-col bg-background-desktop max-[659px]:bg-background min-[660px]:min-w-[420px]",
+      "flex min-w-0 flex-1 flex-col bg-background-desktop max-[659px]:bg-background pb-(--host-bottom-inset,0px) min-[660px]:min-w-[420px]",
       // 面板默认分栏：对话区取可用宽度的一半，下限 420px，上限 800px。
       // 上限来自对话内容本身的 max-w-3xl（768px）加左右 padding，超过就是浪费；
       // 富余空间全部留给独立面板，因为网页与文档预览越宽越好读。
@@ -62,6 +65,8 @@ export function ChatWorkspace({
         />
       ) : (
         <NewConversationPage
+          key={summonedExpert?.key ?? "new"}
+          initialExpert={summonedExpert?.name ?? null}
           config={config}
           isSidebarDocked={isSidebarDocked}
           onOpenSidebar={onOpenSidebar}

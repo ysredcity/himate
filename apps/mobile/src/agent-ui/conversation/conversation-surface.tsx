@@ -49,7 +49,6 @@ export function ConversationSurface({
           <button
             type="button"
             aria-label="定位到底部"
-            title="定位到底部"
             className="absolute bottom-full left-1/2 z-10 mb-3 flex size-9 -translate-x-1/2 items-center justify-center rounded-full border border-border bg-card shadow-md hover:bg-accent"
             onClick={() => contentRef.current?.scrollTo({ top: contentRef.current.scrollHeight, behavior: 'smooth' })}
           >

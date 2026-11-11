@@ -7,6 +7,8 @@ import { GlassAction } from "./mobile-header"
 import { MobileComposer } from "./mobile-composer"
 
 type NewConversationPageProps = {
+  /** 从专家页召唤时预选的专家（与桌面召唤一致：只预选，不自动发送） */
+  initialExpert?: string | null
   config: Pick<AppConfig, "experts" | "welcome">
   isSidebarDocked: boolean
   onOpenSidebar: () => void
@@ -14,9 +16,8 @@ type NewConversationPageProps = {
 }
 
 /** 新对话默认只显示欢迎语；分类列表展开时隐藏欢迎语。 */
-export function NewConversationPage({ config, isSidebarDocked, onOpenSidebar, onStartConversation }: NewConversationPageProps) {
-  const [selectedExpert, setSelectedExpert] = useState<string | null>(null)
-  const [recommendationsOpen, setRecommendationsOpen] = useState(false)
+export function NewConversationPage({ config, initialExpert = null, isSidebarDocked, onOpenSidebar, onStartConversation }: NewConversationPageProps) {
+  const [selectedExpert, setSelectedExpert] = useState<string | null>(initialExpert)
   const [draft, setDraft] = useState("")
   // 欢迎语以第一个「！」断成两行，与设计稿的两行标题一致
   const [greetingFirst, greetingRest] = splitGreeting(config.welcome.greeting)
@@ -28,10 +29,11 @@ export function NewConversationPage({ config, isSidebarDocked, onOpenSidebar, on
         {!isSidebarDocked && <GlassAction label="展开导航" onClick={onOpenSidebar}><Menu /></GlassAction>}
       </header>
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4">
-        <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 pt-24">
-          {!recommendationsOpen && <h1 className="flex flex-col gap-1 px-2 text-2xl leading-8 font-semibold tracking-[-0.36px]">
+        {/* 欢迎语距顶 144px（2026-11-11 由 96px 下移 48px） */}
+        <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 pt-36">
+          <h1 className="flex flex-col gap-1 px-2 text-[28px] leading-9 font-semibold tracking-[-0.42px]">
             <span>{greetingFirst}</span>{greetingRest && <span>{greetingRest}</span>}
-          </h1>}
+          </h1>
         </div>
       </div>
       <footer className="w-full shrink-0 px-4">
@@ -43,7 +45,6 @@ export function NewConversationPage({ config, isSidebarDocked, onOpenSidebar, on
             onDraftChange={setDraft}
             selectedExpert={selectedExpert}
             onSelectedExpertChange={setSelectedExpert}
-            onRecommendationsOpenChange={setRecommendationsOpen}
             onSend={onStartConversation}
           />
         </div>

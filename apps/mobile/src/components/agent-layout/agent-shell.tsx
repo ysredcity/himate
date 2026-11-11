@@ -11,12 +11,16 @@ import { Toaster } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { ArtifactPanel } from "./artifact-panel"
 import { ChatWorkspace } from "./chat-workspace"
+import { ExpertPage } from "./expert-page"
+import { InstalledExpertsContext } from "./expert-context"
+import { expertCatalog, initialScheduledExpertIds, type Expert } from "./expert-data"
+import { addScheduledExpert, installedExpertIds, removeScheduledExpert, resolveDelegatedExpert, SCHEDULED_EXPERT_LIMIT } from "./expert-rules"
 import { AgentSidebar, type Conversation } from "./sidebar"
 import { matchTrigger } from "@/agent-ui/script-engine/match"
 import type { ImmersiveAgentAppProps, ImmersiveConversationMeta, ImmersiveConversationScene, MessageAttachment } from "@/agent-ui/immersive/contracts"
 import { splitSentContext } from "./message-context"
 import { ImageViewer } from "./image-viewer"
-import { embeddedInHost, HOST_BACK, isHostBridgeMessage, readStoredDarkMode, reportBackState, THEME } from "@/preview/host-bridge"
+import { embeddedInHost, HOST_BACK, isHostBridgeMessage, readStoredDarkMode, reportBackState, reportTabBar, THEME } from "@/preview/host-bridge"
 import { panelViewKey, type ArtifactTarget, type ImageView, type PanelTab, type PanelView } from "./panel-types"
 
 const SIDEBAR_WIDTH = 240
@@ -82,6 +86,11 @@ export function AgentShell({ config, scenes, initialPinnedConversations = [], in
   // HiMate 移动端：在宿主壳内时主题由宿主 header 控制，产品只跟随（ADR 0010）
   const hostControlsTheme = Boolean(renderHome) && embeddedInHost()
   const [homeVisible, setHomeVisible] = useState(Boolean(renderHome))
+  // HiMate 移动端专家列表页（功能与桌面一致）：安装名单、召唤预选专家与返回位置
+  const [expertsVisible, setExpertsVisible] = useState(false)
+  const [expertsReturnToHome, setExpertsReturnToHome] = useState(false)
+  const [scheduledExpertIds, setScheduledExpertIds] = useState<string[]>(initialScheduledExpertIds)
+  const [summonedExpert, setSummonedExpert] = useState<{ name: string; key: number } | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [sidebarDrawerOpen, setSidebarDrawerOpen] = useState(false)
   const [panelTabs, setPanelTabs] = useState<PanelTab[]>([])
@@ -215,6 +224,8 @@ export function AgentShell({ config, scenes, initialPinnedConversations = [], in
    */
   const openConversation = (conversation: Conversation | null) => {
     setHomeVisible(false)
+    setExpertsVisible(false)
+    setSummonedExpert(null)
     setActiveConversation(conversation)
     closePanel(true)
     if (conversation) setReadConversationIds((ids) => new Set(ids).add(conversation.id))
@@ -227,24 +238,71 @@ export function AgentShell({ config, scenes, initialPinnedConversations = [], in
   /** 回到工作台首页：产物只属于对话，返回时一并收起。 */
   const backToHome = () => {
     closePanel(true)
+    setExpertsVisible(false)
     setHomeVisible(true)
   }
+  /** 打开专家列表页：记住来源（首页 / Agent 页），宿主返回时回到来源页 */
+  const openExperts = () => {
+    closePanel(true)
+    setSidebarDrawerOpen(false)
+    setExpertsReturnToHome(homeVisible)
+    setHomeVisible(false)
+    setExpertsVisible(true)
+  }
+  const closeExperts = () => {
+    setExpertsVisible(false)
+    if (expertsReturnToHome) setHomeVisible(true)
+  }
+  /** 召唤：与桌面一致，回到新对话页并预选专家，不自动发送 */
+  const summonExpert = (expert: Expert) => {
+    if (!expert.canSummon) return
+    openConversation(null)
+    setSummonedExpert({ name: expert.name, key: Date.now() })
+  }
+  const addExpertToSchedule = (id: string) => {
+    const result = addScheduledExpert(scheduledExpertIds, id, expertCatalog)
+    if (result.status === "full") {
+      toast.error(`最多自行安装 ${SCHEDULED_EXPERT_LIMIT} 位专家，请先删除其他已安装专家`)
+      return
+    }
+    if (result.status === "unsupported") {
+      toast.error("该专家不支持召唤，无法安装")
+      return
+    }
+    if (result.status === "duplicate" || result.status === "invalid") return
+    setScheduledExpertIds(result.ids)
+    toast.success("已安装")
+  }
+  const removeExpertFromSchedule = (id: string) => {
+    setScheduledExpertIds((ids) => removeScheduledExpert(ids, id, expertCatalog))
+    toast.success("已删除")
+  }
+  const installedIdSet = new Set(installedExpertIds(scheduledExpertIds, expertCatalog))
+  const installedExperts = expertCatalog.filter((expert) => installedIdSet.has(expert.id))
   /**
    * 宿主 header 返回：先关最上层（图片查看器 → 产物面板 → 抽屉），再从 Agent 页回到首页。
    * 首页本身没有可返回层级，交给宿主处理。
    */
-  const canGoBack = Boolean(imageView) || panelOpen || sidebarDrawerOpen || (Boolean(renderHome) && !homeVisible)
+  const canGoBack = Boolean(imageView) || panelOpen || sidebarDrawerOpen || expertsVisible || (Boolean(renderHome) && !homeVisible)
   const backRef = useRef<() => void>(() => {})
   backRef.current = () => {
     if (imageView) setImageView(null)
     else if (panelOpen) closePanel()
     else if (sidebarDrawerOpen) setSidebarDrawerOpen(false)
+    else if (expertsVisible) closeExperts()
     else if (renderHome && !homeVisible) backToHome()
   }
   useEffect(() => {
     if (!renderHome) return
     reportBackState(canGoBack)
   }, [canGoBack, renderHome])
+  // 宿主底部飞书 Tab 栏只在工作台首页显示；新对话页、对话页隐藏
+  useEffect(() => {
+    if (!renderHome) return
+    reportTabBar(homeVisible)
+    // 宿主隐藏 Tab 栏时把 Home Indicator 叠在网页底部，Agent 页预留 34px，避免输入框被横条压住
+    document.documentElement.style.setProperty("--host-bottom-inset", !homeVisible && embeddedInHost() ? "34px" : "0px")
+  }, [homeVisible, renderHome])
   useEffect(() => {
     if (!renderHome) return
     const onMessage = (event: MessageEvent) => {
@@ -298,6 +356,7 @@ export function AgentShell({ config, scenes, initialPinnedConversations = [], in
 
   return (
     <>
+    <InstalledExpertsContext value={{ installed: installedExperts, openExperts }}>
     <TooltipProvider delay={150}>
       <SidebarProvider
         className="h-dvh min-h-0 min-w-0 overflow-hidden bg-background-mobile min-[660px]:min-w-[420px] md:bg-sidebar"
@@ -325,6 +384,8 @@ export function AgentShell({ config, scenes, initialPinnedConversations = [], in
               onCollapse={() => setSidebarOpen(false)}
               onDarkModeChange={setDarkMode}
               showThemeToggle={!hostControlsTheme}
+              onOpenExperts={openExperts}
+              expertsActive={expertsVisible}
               onNewChat={() => openConversation(null)}
               onPinnedChange={changePinnedState}
               onRename={startRenaming}
@@ -350,9 +411,19 @@ export function AgentShell({ config, scenes, initialPinnedConversations = [], in
             <div className="min-w-0 flex-1 overflow-y-auto">
               {renderHome({ openSidebar, startNewConversation: () => openConversation(null), hasAttention })}
             </div>
+          ) : expertsVisible ? (
+            <ExpertPage
+              scheduledIds={scheduledExpertIds}
+              isSidebarDocked={sidebarDocked}
+              onOpenSidebar={openSidebar}
+              onAdd={addExpertToSchedule}
+              onRemove={removeExpertFromSchedule}
+              onSummon={summonExpert}
+            />
           ) : (
           <ChatWorkspace
             config={config}
+            summonedExpert={summonedExpert}
             createDraftScene={createDraftScene}
             activeConversation={activeConversation}
             isSidebarDocked={sidebarDocked}
@@ -364,10 +435,15 @@ export function AgentShell({ config, scenes, initialPinnedConversations = [], in
             onApprovalStatusChange={updateApprovalStatus}
             onOpenSidebar={openSidebar}
             onStartConversation={(message, context) => {
-              const { attachments, content, expert } = splitSentContext(message, context)
+              const { attachments, content, expert: manualExpert } = splitSentContext(message, context)
+              const expert = resolveDelegatedExpert(content, manualExpert, scheduledExpertIds, expertCatalog)
               // 标题去掉内联标签标记，只保留可读文本
               const title = content.replace(/\[\[[^:\]]+:([^\]]+)\]\]/g, "$1").trim() || attachments[0]?.name || context[0]?.label || "新对话"
-              const scene = resolveSceneForInput(content, scenes, attachments) ?? createDraftScene(content, expert, attachments)
+              const matched = resolveSceneForInput(content, scenes, attachments)
+              // 剧本被自然语言命中时，以本轮解析出的专家覆盖剧本首轮身份（与桌面一致）
+              const scene = matched
+                ? (expert ? { ...matched, turns: matched.turns.map((turn, index) => index === 0 ? { ...turn, expert } : turn) } : matched)
+                : createDraftScene(content, expert, attachments)
               const newConversation: Conversation = {
                 id: `draft-${Date.now()}`,
                 title: title.slice(0, 36),
@@ -444,6 +520,8 @@ export function AgentShell({ config, scenes, initialPinnedConversations = [], in
               onCollapse={() => setSidebarDrawerOpen(false)}
               onDarkModeChange={setDarkMode}
               showThemeToggle={!hostControlsTheme}
+              onOpenExperts={openExperts}
+              expertsActive={expertsVisible}
               onNewChat={() => {
                 openConversation(null)
                 setSidebarDrawerOpen(false)
@@ -495,6 +573,7 @@ export function AgentShell({ config, scenes, initialPinnedConversations = [], in
         </main>
       </SidebarProvider>
     </TooltipProvider>
+    </InstalledExpertsContext>
     <Toaster theme={darkMode ? "dark" : "light"} position="top-center" />
     </>
   )
