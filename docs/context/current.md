@@ -2,7 +2,7 @@
 
 - 更新时间：2026-11-09（Asia/Shanghai）
 - 状态：移动端阶段性完成；桌面端专项开发中（本轮：左侧导航收起改为图标栏）。
-- 当前分支：`feat/home-agents-figma`，已推送到 `origin/feat/home-agents-figma`（2026-11-09 提交 `ea0b263`，含此前全部桌面、移动、治理改动）。2026-11-09 已快进合并到 `main` 并推送。2026-11-11 再次提交桌面（专家页搜索、图标栏顶部头像、Composer 专家头像）与另一对话完成的移动专家目录等改动，`main` 与 `feat/home-agents-figma` 同步推送。`.ued-tmp/` 为本地检查材料，已忽略。`apps/desktop-web/.wbapp_7UjS5tv1ZodAgwr2UUfpui.genie` 是 WorkBuddy 发布配置（保留供本机继续发布到同一链接），已由根 `.gitignore` 的 `*.genie` 忽略。
+- 当前分支：`main`，与 `feat/home-agents-figma` 及两者远端同为 `55e93b8`（2026-11-11 提交：桌面专家页搜索、图标栏顶部头像、Composer 专家头像，以及另一对话完成的移动专家目录等）。更早的 `ea0b263`（11-09）为首次整体提交。`.genie` WorkBuddy 发布配置与 `.ued-tmp/` 本地检查材料均已忽略。
 - 截至 2026-11-08 22:50 的逐轮完整记录已归档到 [archive/context-2026-11-08](../archive/context-2026-11-08/current.md)，需要追溯细节时再读。
 
 ## 当前产品
