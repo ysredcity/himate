@@ -1,3 +1,4 @@
+import { CalendarFold, ChevronRight, Settings2 } from "lucide-react"
 import { useState, type ReactNode } from "react"
 
 import { Badge } from "@/components/ui/badge"
@@ -43,7 +44,7 @@ export function HomeWorkspaceSections({ onTask, onSelectAgent }: Props) {
   const reportCards = () => homeReports.map((item) => <Button key={item.id} variant="ghost" className="h-[92px] min-w-0 flex-col items-start justify-start gap-1 overflow-hidden rounded-[12px] border border-border bg-background p-4 text-left font-normal whitespace-normal hover:bg-accent" onClick={() => reportTask(item.title)}>
     <span className="w-full truncate text-xs leading-[14px] tracking-[0.12px] text-muted-foreground">{item.category}</span>
     <span className="w-full truncate text-sm font-medium leading-5">{item.title}</span>
-    <span className="flex w-full items-center gap-1 text-xs leading-[14px] tracking-[0.12px]"><Badge variant="outline" className="h-[18px] gap-0.5 rounded-[4px] border-0 bg-success/8 px-1 py-0 font-normal leading-[14px] text-success-foreground"><AssetIcon src={homeAssets.imgCalendarFold} /><span className="px-px">每日</span></Badge><span className="min-w-0 flex-1 truncate text-muted-foreground">{item.updated}</span></span>
+    <span className="flex w-full items-center gap-1 text-xs leading-[14px] tracking-[0.12px]"><Badge variant="outline" className="h-[18px] gap-0.5 rounded-[4px] border-0 bg-success/8 px-1 py-0 font-normal leading-[14px] text-success-foreground"><CalendarFold aria-hidden="true" className="size-3 shrink-0" /><span className="px-px">每日</span></Badge><span className="min-w-0 flex-1 truncate text-muted-foreground">{item.updated}</span></span>
   </Button>)
   const appCards = (all = false) => homeApplications.filter((item) => all || visibleApps.includes(item.id)).map((item) => <Button key={item.id} variant="ghost" className="h-[94px] min-w-0 flex-col justify-start gap-2 rounded-[12px] border-0 px-2 py-3 font-normal hover:bg-card hover:shadow-home-card-hover" onClick={() => application(item)}>
     <img src={item.image} alt="" className="size-12 shrink-0 rounded-full object-cover" loading="lazy" />
@@ -96,11 +97,11 @@ const grid = "grid grid-cols-2 gap-2 @min-[660px]/home:grid-cols-3 @min-[900px]/
 const agentGrid = "grid gap-2 grid-cols-1 @min-[480px]/home:grid-cols-2 @min-[660px]/home:grid-cols-3 @min-[900px]/home:grid-cols-4 @min-[1100px]/home:grid-cols-5"
 
 function HomeSection({ title, children, onConfigure, onMore, compact, headerContent }: { headerContent?: ReactNode; title: string; children: ReactNode; onConfigure?: () => void; onMore: () => void; compact?: boolean }) {
-  return <section aria-label={title} className="flex min-w-0 flex-col gap-2"><div className={cn("flex h-8 items-center justify-between", compact && "h-7", headerContent && "h-auto min-h-8 flex-wrap gap-2")}><h2 className="pl-3 text-lg font-semibold leading-7 tracking-[-0.18px]">{title}</h2>{headerContent && <div className="order-last w-full @min-[660px]/home:order-none @min-[660px]/home:ml-auto @min-[660px]/home:w-auto">{headerContent}</div>}<div className="ml-auto flex items-center gap-1 @min-[660px]/home:ml-0">{onConfigure && <Button variant="ghost" size="sm" className="gap-1 rounded-full px-2 text-sm font-medium max-[659px]:min-h-11" onClick={onConfigure}><AssetIcon src={homeAssets.imgSettings2} />配置</Button>}<Button variant="ghost" size="sm" className="gap-0 rounded-full px-1.5 text-sm font-medium max-[659px]:min-h-11" onClick={onMore}><span className="px-1">{onConfigure ? "全部" : "更多"}</span><AssetIcon src={homeAssets.imgChevronRight1} /></Button></div></div>{children}</section>
+  return <section aria-label={title} className="flex min-w-0 flex-col gap-2"><div className={cn("flex h-8 items-center justify-between", compact && "h-7", headerContent && "h-auto min-h-8 flex-wrap gap-2")}><h2 className="pl-3 text-lg font-semibold leading-7 tracking-[-0.18px]">{title}</h2>{headerContent && <div className="order-last w-full @min-[660px]/home:order-none @min-[660px]/home:ml-auto @min-[660px]/home:w-auto">{headerContent}</div>}<div className="ml-auto flex items-center gap-1 @min-[660px]/home:ml-0">{onConfigure && <Button variant="ghost" size="sm" className="gap-1 rounded-full px-2 text-sm font-medium max-[659px]:min-h-11" onClick={onConfigure}><Settings2 aria-hidden="true" className="size-4 shrink-0" />配置</Button>}<Button variant="ghost" size="sm" className="gap-0 rounded-full px-1.5 text-sm font-medium max-[659px]:min-h-11" onClick={onMore}><span className="px-1">{onConfigure ? "全部" : "更多"}</span><ChevronRight aria-hidden="true" className="size-4 shrink-0" /></Button></div></div>{children}</section>
 }
 
 function AssetIcon({ src }: { src: string }) {
-  return <img src={src} alt="" aria-hidden="true" className="shrink-0 dark:brightness-150" />
+  return <img src={src} alt="" aria-hidden="true" className="shrink-0" />
 }
 
 function EmptySelection({ onConfigure }: { onConfigure: () => void }) {

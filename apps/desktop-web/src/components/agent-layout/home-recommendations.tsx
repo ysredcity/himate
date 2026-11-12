@@ -2,15 +2,12 @@ import { useId, useLayoutEffect, useRef, useState } from "react"
 import { ChevronDown, X } from "lucide-react"
 
 import { RecommendationList } from "@/agent-ui/conversation"
-import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { homeRecommendationCategories } from "./home-data"
 import { recommendationIcons } from "./icon-registry"
 
 const categoryClass = "group/category h-11 gap-1.5 rounded-full px-3 font-normal min-[660px]:h-9"
-
-const selectedCategoryClass = "bg-foreground text-background hover:bg-foreground hover:text-background aria-expanded:bg-foreground aria-expanded:text-background"
 
 export function HomeRecommendations({ onSelect }: { onSelect: (prompt: string, expert?: string) => void }) {
   const [category, setCategory] = useState<string | null>(null)
@@ -68,7 +65,7 @@ function CategoryChips({ category, listId, onSelect }: { category: string | null
   const chip = (item: typeof homeRecommendationCategories[number], measuring = false) => {
     const Icon = recommendationIcons[item.id]
     const active = category === item.id
-    return <Button key={item.id} variant="outline" className={cn(categoryClass, active && selectedCategoryClass)} aria-pressed={active} aria-expanded={active} aria-controls={measuring ? undefined : listId} onClick={() => onSelect(item.id)}>
+    return <Button key={item.id} variant={active ? "selected" : "outline"} className={categoryClass} aria-pressed={active} aria-expanded={active} aria-controls={measuring ? undefined : listId} onClick={() => onSelect(item.id)}>
       <span className="relative size-4 shrink-0"><Icon aria-hidden="true" className={active ? "size-4 group-hover/category:invisible group-focus-visible/category:invisible" : "size-4"} />{active && <X aria-hidden="true" className="invisible absolute inset-0 size-4 group-hover/category:visible group-focus-visible/category:visible" />}</span>
       {item.label}
     </Button>
@@ -84,7 +81,7 @@ function CategoryChips({ category, listId, onSelect }: { category: string | null
     <div ref={rowRef} className="flex min-w-0 flex-nowrap justify-center gap-2" role="group" aria-label="推荐指令分类">
       {homeRecommendationCategories.slice(0, count).map((item) => chip(item))}
       {hidden.length > 0 && <DropdownMenu>
-        <DropdownMenuTrigger render={<Button variant="outline" className={cn(categoryClass, hiddenSelected && selectedCategoryClass)} />}>更多<ChevronDown className="size-4" /></DropdownMenuTrigger>
+        <DropdownMenuTrigger render={<Button variant={hiddenSelected ? "selected" : "outline"} className={categoryClass} />}>更多<ChevronDown className="size-4" /></DropdownMenuTrigger>
         <DropdownMenuContent align="end" side="bottom">
           {hidden.map((item) => {
             const Icon = recommendationIcons[item.id]

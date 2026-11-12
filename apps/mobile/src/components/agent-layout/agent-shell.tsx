@@ -302,7 +302,7 @@ export function AgentShell({ config, scenes, initialPinnedConversations = [], in
     if (!renderHome) return
     reportTabBar(homeVisible)
     // 宿主隐藏 Tab 栏时把 Home Indicator 叠在网页底部，Agent 页预留 34px，避免输入框被横条压住
-    document.documentElement.style.setProperty("--host-bottom-inset", !homeVisible && embeddedInHost() ? "34px" : "0px")
+    document.documentElement.style.setProperty("--host-bottom-inset", !homeVisible && embeddedInHost() ? rem(34) : "0px")
   }, [homeVisible, renderHome])
   useEffect(() => {
     if (!renderHome) return

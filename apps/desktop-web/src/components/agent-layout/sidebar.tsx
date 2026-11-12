@@ -188,7 +188,8 @@ export function AgentSidebar({
                 aria-label={drawer ? "关闭导航" : "收起导航"}
                 className={cn(
                   "text-sidebar-accent-foreground hover:bg-sidebar-accent",
-                  drawer && "size-10 rounded-[10px] [&_svg]:size-6",
+                  // 与图标栏的「展开导航」同形：36px、10px 圆角
+                  drawer ? "size-10 rounded-[10px] [&_svg]:size-6" : "size-9 rounded-[10px]",
                 )}
                 onClick={drawer ? onClose : onCollapse}
               >
@@ -691,10 +692,11 @@ function RailConversationPopover({
         side="right"
         align="start"
         sideOffset={8}
-        className="max-h-[min(560px,calc(100dvh-24px))] w-[280px] gap-1 overflow-y-auto rounded-2xl p-2"
+        className="max-h-[min(480px,var(--available-height))] w-[280px] gap-1 overflow-hidden rounded-2xl p-2"
       >
         <div className="flex h-8 shrink-0 items-center px-2 text-sm text-muted-foreground">{label}</div>
-        <SidebarMenu>
+        {/* 标题固定，列表区内部滚动 */}
+        <SidebarMenu className="min-h-0 overflow-y-auto">
           {items.map((conversation) => (
             <ConversationMenuItem
               key={conversation.id}

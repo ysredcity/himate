@@ -18,6 +18,8 @@ const buttonVariants = cva(
         destructive:
           "bg-destructive-bg text-destructive-foreground hover:bg-destructive-bg focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40",
         link: "text-primary underline-offset-4 hover:underline",
+        // 筛选标签的选中态：不叠加 outline / ghost 的深色模式底色，悬停与展开保持同色
+        selected: "bg-selected text-selected-foreground hover:bg-selected hover:text-selected-foreground aria-expanded:bg-selected aria-expanded:text-selected-foreground",
       },
       size: {
         default:

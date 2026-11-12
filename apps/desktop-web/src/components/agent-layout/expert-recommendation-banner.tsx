@@ -27,7 +27,7 @@ export function ExpertRecommendationBanner({ onSelect }: { onSelect: (expert: Ex
     return () => window.clearInterval(timer)
   }, [autoPlay, hovered, focused, reducedMotion, visible, count])
 
-  return <section aria-label="精选专家推荐" aria-roledescription="轮播" className="relative mb-6 overflow-hidden rounded-2xl bg-success/8" onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)} onFocusCapture={(event) => setFocused(event.target.matches(":focus-visible"))} onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false) }}>
+  return <section aria-label="精选专家推荐" aria-roledescription="轮播" className="theme-light relative mb-6 text-foreground overflow-hidden rounded-2xl bg-success/8" onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)} onFocusCapture={(event) => setFocused(event.target.matches(":focus-visible"))} onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false) }}>
     <div className="flex transition-transform duration-300 ease-out motion-reduce:transition-none" style={{ transform: `translateX(-${index * 100}%)` }}>
       {expertRecommendations.map((item, slideIndex) => {
         const expert = expertCatalog.find((candidate) => candidate.id === item.id)!

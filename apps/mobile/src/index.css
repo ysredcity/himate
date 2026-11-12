@@ -24,11 +24,23 @@
   }
   /*
     402 基准等比缩放：根字号 = 屏宽 / 402 × 16px，所有 rem（构建时由 px 换算）随屏宽等比变化。
-    宽度上限 480px（大屏手机、折叠屏外屏），避免在桌面浏览器直接打开时无限放大。
-    只加在产品页面上（main.tsx），宿主预览外壳保持 16px。
+    产品页面与宿主预览外壳都加（main.tsx），外壳的状态栏 / 标题栏 / Tab 栏 / 模拟键盘与网页同比例。
+    屏宽超过 480px 视为桌面预览：回到 1:1（402 宽居中），不放大。
   */
   html.design-scale {
-    font-size: calc(min(100vw, 480px) / 402 * 16);
+    font-size: calc(100vw / 402 * 16);
+  }
+  /* 专家推荐 Banner 背景图是浅色插画：标题、描述与分页点在深色模式下也保持浅色主题的文字色（2026-11-11） */
+  .banner-light-text {
+    --foreground: var(--color-neutral-800);
+    --muted-foreground: var(--color-neutral-500);
+    /* 标题没有颜色类、继承上层已算好的颜色，所以这里显式重设 */
+    color: var(--foreground);
+  }
+  @media (min-width: 481px) {
+    html.design-scale {
+      font-size: 16px;
+    }
   }
   /* 宿主模拟键盘弹出时，键盘自带 Home Indicator 区域，产品不再预留底部 34px（见 host-bridge reportKeyboard） */
   html[data-host-keyboard] {

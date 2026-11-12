@@ -4,6 +4,55 @@
 - 状态：完成（桌面左侧导航收起形态改为图标栏）
 - 本轮目标：③ Composer 专家菜单只列已安装并加「查看更多专家」。① 增加「专家」入口后，左侧导航收起时不再完全隐藏，改为只保留图标；已置顶、对话各一个图标，悬停在右侧打开对话列表窗口。② 预置对话的 L3 步骤补充过程文本。
 
+## 第二十一项：Banner 深色下保持浅色文字
+
+- `theme.css` 的 `:root` 选择器扩为 `:root, .theme-light`；Banner `section` 加 `theme-light text-foreground`（需显式 text-foreground，否则继承的是 body 已解析的深色值）。实测深色下标题 oklch(0.269) / 描述 oklch(0.556)，与浅色一致，页面其他区域不受影响；gate 通过。未提交。
+## 第二十二项：深色模式检查
+
+- 深色下截图首页全页、Composer + 专家子菜单、专家页与详情。问题集中在用 `<img>` 引入的 Figma 单色 SVG（#262626 / 白色写死）：Composer 语音（c2c7f）与发送（c07f5，白箭头在深色白底按钮上消失）、首页标题栏配置（b55ff）与箭头（7f394，原 `dark:brightness-150` 无效）、报表日历（480a3）、抽屉形态展开导航（a5e49，原靠 invert 滤镜做悬停反色）。
+- 修复：分别换成 lucide `Mic` / `ArrowUp` / `Settings2` / `ChevronRight` / `CalendarFold` / `IndentIncrease`；Composer 去掉 `defaultActionIcons`（`actionIcons` prop 保留可选）；`AssetIcon` 只剩 verified 白色对勾，去掉无效的 brightness。实测深色下图标颜色为 foreground / background，浅色不变；gate 通过。
+- 检查后保留：Composer 外框阴影 `rgba(0,0,0,…)`（深色下黑色阴影属正常），未开启的连接器色块，图片查看器黑色蒙层；专家页与详情深色正常。`home-data.ts` 中上述图片映射与 public 素材未删除。未提交。
+
+## 第二十项：「添加」与列表限高
+
+- `composer.tsx`：可访问名 / Tooltip「添加上下文」→「添加」；专家子菜单改 flex 列，列表包一层 `max-h-[min(288px,calc(var(--available-height)-64px))] overflow-y-auto`，分隔线与「查看更多专家」在滚动区外。
+- `sidebar.tsx` 悬浮窗：`max-h-[min(480px,var(--available-height))] overflow-hidden`，`SidebarMenu` 内部滚动，标题固定。
+- 实测：装到 10 位专家时列表 288/368 可滚，滚到底「查看更多」仍可见；17 条对话时窗口 480px、列表 428/544 可滚、标题可见；500px 高视口窗口不出界；gate 通过。未提交。
+
+## 第十九项：选中态 Token
+
+- 根因：outline 变体带 `dark:bg-input/30`，特异性高于选中态的 `bg-foreground`，深色下选中分类显示为半透明深底 + 深色字。
+- 修复：`theme.css` 新增 `--selected` / `--selected-foreground`（:root 与 .dark 各自取值）并在 `@theme` 注册；`ui/button.tsx` 新增 `selected` 变体；首页分类与「更多」、专家页 `FilterChips` 改为按状态切换变体，删除原 `selectedCategoryClass` 与 bg-foreground 覆盖。实测浅色深底白字、深色浅底深字，悬停不变；gate 通过。未提交。
+
+## 第十八项：首页推荐箭头不位移
+
+- `agent-ui/conversation/recommendation-list.tsx` 的 up-left（仅首页使用）去掉 hover / focus 的 `-translate-x-0.5`；down-left（对话页跟进建议）不变。未提交。
+
+## 第十七项：删除改卸载 + 二次确认
+
+- `expert-page.tsx`：按钮文案 / Tooltip / 可访问名改为「卸载」，企业默认 Tooltip 改为“不可卸载”；新增 `uninstalling` 状态与确认 Dialog，卡片和详情只设置待卸载专家，确认后 `onRemove` + 关闭详情 + Toast。实测取消、Esc 不改动，确认后计数 3→2、列表移除；详情内卸载确认后两层对话框都关闭；无报错，gate 通过。
+- 未改：已安装 Alert 里用户指定的文案“不可删除”保留原样。未提交。
+
+## 第十六项：已安装筛选标签栏
+
+- `expert-page.tsx` 抽出 `FilterChips`（市场场景筛选与已安装共用），已安装新增 `installSource` 状态（全部 / 企业默认安装 / 我安装的），在 baseLists 中过滤，与搜索叠加；无结果提示改为“尝试切换分类或清空搜索”。未提交。
+
+## 第十五项：卡片角色图标
+
+- 卡片角色行前加 12px `Users`（lucide 无 UserGroup 名，`users` 即用户组图标），文字仍单行省略。未提交。
+
+## 第十四项：已安装计数口径
+
+- `expert-page.tsx` Tab 计数由 `installedIds.length` 改为 `personalInstallationCount`（不含企业默认）。未提交。
+
+## 第十三项：卡片安装按钮文字
+
+- `ExpertActions`：`showText` 增加 `!canRemove`，卡片未安装时显示「+ 安装」（删除仍纯图标）；未安装 Tooltip 改为「安装后可自动调用」，详情同样生效。未提交。
+
+## 第十二项：收起 / 展开按钮同形
+
+- `sidebar.tsx` 展开侧栏 Header 的收起按钮（IconButton 默认 28px 全圆）非抽屉时改为 `size-9 rounded-[10px]`，与图标栏顶部按钮一致。实测两者均 36×36、10px 圆角、悬停底色相同；gate 通过。未提交。
+
 ## 第十一项：Banner 翻页按钮修复
 
 - 根因 1（点击无反应）：Button 默认 `active:translate-y-px` 与定位 `-translate-y-1/2` 共用 translate，按下时按钮下跳 17px，松开在按钮外则无 click。改为外层 `inset-y-0 flex items-center` 容器居中，按钮不再用位移。
@@ -128,3 +177,14 @@
 - 2026-11-11 15:25 追加（移动端）：`exitVoice` 不再聚焦；voice 为真时 effect 清除 focused 并 `reportKeyboard(false)`（InputButton 在 pointerdown 阻止默认，切到语音时 textarea 被卸载而不触发 blur）。宿主实测：聚焦键盘 336 → 点麦克风 0 → 按住说话 0 → 切回键盘输入 0、未聚焦、Composer 单行 56px。
 - 2026-11-11 15:35 追加（移动端）：`expertChip` 改为 `PillButton`（36px、primary-bg、整枚可点移除），专家列表 Sheet `data-[side=bottom]:h-[80dvh]`（与专家详情一致），入口图标 `contextIcons.专家`（Bot）。实测：标签高 36、名称到 X 4px、点击移除；列表面板 699px；入口无已选名称。
 - 2026-11-11 15:50 追加（移动端）：去掉 chooseExpert / 推荐指令选择后的 `focus()`；「+」Sheet `finalFocus` 按打开前是否聚焦（`keyboardBeforePicker` ref）决定是否还给 textarea。宿主实测：键盘关闭时拍照 / 选专家 / 移除专家 / 选推荐指令后仍为 0；键盘打开时移除图片仍 336，打开面板时 0，相册上传 / 选专家 / Esc 关闭后恢复 336。
+- 2026-11-11 16:00 追加（移动端）：添加面板 UploadOption 去掉 `stroke-[1.5]`、图标 28px；专家入口 Bot 24px、font-medium。实测三项字重 500、描边 2px，截图核对。
+- 2026-11-11 16:05 追加（移动端）：「+」专家列表第二行改 `expert.description`（truncate），搜索加描述。402 实测 5 位专家均显示描述且单行省略。
+- 2026-11-11 16:20 追加（移动端）：等比缩放修订（ADR 0012 已更新）——`main.tsx` 对宿主与产品都加 `design-scale`；根字号 `100vw/402*16`，`min-width: 481px` 回 16px；`--host-bottom-inset` 改 `rem(34)`。实测 402 / 440 / 1280 见 ADR。
+- 2026-11-11 16:30 追加（移动端）：底部遮罩 `from-[color-mix(in_oklab,var(--background)_94%,var(--foreground))]`，浅色下底部约 oklab L 0.956；宿主截图核对 Tab 栏边缘可辨。深色模式下会比背景略亮，未截图。
+- 2026-11-11 16:35 追加（移动端）：已安装 Tab 计数改 `personalInstallationCount`。实测默认「已安装 3」（列表仍 5 行含 2 位企业默认），安装项目推进专家后为 4。
+- 2026-11-11 16:50 追加（移动端）：已安装来源筛选（`FilterChips` 组件与专家市场共用）、卸载二次确认 Dialog，均对齐桌面未提交改动。402 实测：三档筛选分别 5 / 2 / 3 位；卸载财税助手弹确认，取消不变，确认后列表剩 2 位、Tab「已安装 2」、toast「已卸载」。
+- 2026-11-11 17:00 追加（移动端）：去掉我的专家「前往管理」；`glassSurface` 加 dark 底色（背景混 10% 前景）与描边 foreground/15；Banner 根加 `.banner-light-text`（重设 --foreground / --muted-foreground 为浅色值并显式 color）。深色实测：按钮底 L 0.28 vs 页面 0.205，Banner 标题 L 0.269。
+- 2026-11-11 17:05 追加（移动端）：推荐指令箭头 text-muted-foreground；专家页搜索 placeholder「搜索专家」。
+- 2026-11-11 17:10 追加（移动端）：Composer 专家面板去掉搜索（状态、输入框、按钮、过滤逻辑），列表直接用 installedExperts。
+- 2026-11-11 17:20 追加（移动端）：`resource-visuals.tsx` 复制桌面 HiMateMark，`bot` 分支与桌面一致；sidebar 顶部固定 `productAvatar="bot"`（28px、标识 20px）。identity.avatar 仍为 himate 图片，只用于对话流。实测导航头像为 28px primary 圆底 SPAN。
+- 2026-11-12 追加：用户授权，PC 与移动端全部改动提交到 main 并推送，feat/home-agents-figma 同步到同一提交。

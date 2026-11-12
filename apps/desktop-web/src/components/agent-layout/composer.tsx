@@ -1,5 +1,4 @@
 import { expertCatalog, summonableExperts } from "./expert-data"
-import { homeAssets } from "./home-data"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { ArrowUp, ArrowUpRight, ChevronDown, ChevronLeft, ChevronRight, ExternalLink, Mic, Plus, Upload, X } from "lucide-react"
 import { toast } from "sonner"
@@ -99,9 +98,8 @@ type ComposerProps = {
   onBrowseExperts?: () => void
 }
 
-const defaultActionIcons = { add: homeAssets.imgIcon, mic: homeAssets.imgIcon1, send: homeAssets.imgIcon2 }
 
-export function Composer({ appearance = "welcome", placeholder = "发送消息给我", actionIcons = defaultActionIcons, disabled = false, showConnectorSelect = false, expertOptions, expertVisualKeys, onSend, focusRequest = 0, draft, onDraftChange, selectedExpert, onSelectedExpertChange, menuSide = "above", onBrowseExperts }: ComposerProps) {
+export function Composer({ appearance = "welcome", placeholder = "发送消息给我", actionIcons, disabled = false, showConnectorSelect = false, expertOptions, expertVisualKeys, onSend, focusRequest = 0, draft, onDraftChange, selectedExpert, onSelectedExpertChange, menuSide = "above", onBrowseExperts }: ComposerProps) {
   const [uploads, setUploads] = useState<UploadItem[]>([])
   const [uncontrolledExpert, setUncontrolledExpert] = useState<string | null>(null)
   const [recording, setRecording] = useState(false)
@@ -572,8 +570,8 @@ function AddContextMenu({ menuSide, menus, expertVisualKeys, disabled, onLocalUp
   return (
     <DropdownMenu>
       <Tooltip>
-        <TooltipTrigger render={<DropdownMenuTrigger disabled={disabled} render={<IconButton aria-label="添加上下文" disabled={disabled} className="size-9"><Plus className="size-5" /></IconButton>} />} />
-        <TooltipContent>添加上下文</TooltipContent>
+        <TooltipTrigger render={<DropdownMenuTrigger disabled={disabled} render={<IconButton aria-label="添加" disabled={disabled} className="size-9"><Plus className="size-5" /></IconButton>} />} />
+        <TooltipContent>添加</TooltipContent>
       </Tooltip>
       <DropdownMenuContent align="start" side={menuSide === "below" ? "bottom" : "top"} sideOffset={8} className="w-40 rounded-2xl [&_[data-slot=dropdown-menu-item]]:rounded-[10px] [&_[data-slot=dropdown-menu-sub-trigger]]:rounded-[10px]">
         <DropdownMenuItem onClick={onLocalUpload}><Upload />上传图片</DropdownMenuItem>
@@ -585,11 +583,14 @@ function AddContextMenu({ menuSide, menus, expertVisualKeys, disabled, onLocalUp
             {label === "专家" && <DropdownMenuSeparator />}
             <DropdownMenuSub>
               <DropdownMenuSubTrigger><ContextIcon />{label}</DropdownMenuSubTrigger>
-              <DropdownMenuSubContent className="w-44 rounded-2xl [&_[data-slot=dropdown-menu-item]]:rounded-[10px]">
-                {items.map((item) => <DropdownMenuItem key={item} onClick={() => onSelect(item, label)}>
-                  {label === "文件库" ? <LibraryFileIcon fileName={item} /> : label === "专家" ? <ExpertAvatar expert={item} src={expertAvatarSrc(item)} visualKey={expertVisualKeys?.[item]} className="size-5 rounded-full" /> : <ContextIcon />}
-                  <span className="min-w-0 truncate">{item}</span>
-                </DropdownMenuItem>)}
+              {/* 列表区单独限高滚动，「查看更多专家」固定在底部始终可见 */}
+              <DropdownMenuSubContent className="flex w-44 flex-col overflow-hidden rounded-2xl [&_[data-slot=dropdown-menu-item]]:rounded-[10px]">
+                <div className="-m-1 max-h-[min(288px,calc(var(--available-height)-64px))] min-h-0 overflow-y-auto p-1">
+                  {items.map((item) => <DropdownMenuItem key={item} onClick={() => onSelect(item, label)}>
+                    {label === "文件库" ? <LibraryFileIcon fileName={item} /> : label === "专家" ? <ExpertAvatar expert={item} src={expertAvatarSrc(item)} visualKey={expertVisualKeys?.[item]} className="size-5 rounded-full" /> : <ContextIcon />}
+                    <span className="min-w-0 truncate">{item}</span>
+                  </DropdownMenuItem>)}
+                </div>
                 {label === "专家" && onBrowseExperts && <>
                   {items.length > 0 && <DropdownMenuSeparator />}
                   <DropdownMenuItem onClick={onBrowseExperts}><ArrowUpRight />查看更多专家</DropdownMenuItem>

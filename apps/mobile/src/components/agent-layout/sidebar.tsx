@@ -175,7 +175,8 @@ export function AgentSidebar({
       >
         {/* 产品身份与对话流里的智能体身份共用同一头像与名称 */}
         <div className="flex min-w-0 flex-1 items-center gap-2 text-sidebar-accent-foreground">
-          <AgentAvatar productAvatar={config.identity.avatar} className="size-7 [&_svg]:size-4" />
+          {/* 导航顶部的产品头像与桌面一致（primary 圆底 + HiMate 标识）；对话流里的智能体头像仍用 identity.avatar */}
+          <AgentAvatar productAvatar="bot" className="size-7 [&_svg]:size-5" />
           <span className={cn("truncate font-semibold", drawer ? "text-lg tracking-[-0.18px]" : "text-base")}>
             {config.identity.name}
           </span>

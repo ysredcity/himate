@@ -27,6 +27,8 @@
   --color-primary-bg: var(--primary-bg);
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
+  --color-selected: var(--selected);
+  --color-selected-foreground: var(--selected-foreground);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
@@ -72,7 +74,9 @@
   --shadow-agent-list: 0 2px 8px --alpha(var(--info) / 15%);
 }
 
-:root {
+/* .theme-light：在深色模式下局部恢复浅色 Token，用于背景固定为浅色图片的区域（如专家推荐 Banner） */
+:root,
+.theme-light {
   --radius: 0.625rem;
   --background: var(--color-white);
   --background-desktop: var(--color-neutral-50);
@@ -87,6 +91,9 @@
   --primary-foreground: var(--color-white);
   --secondary: --alpha(var(--color-black) / 4%);
   --secondary-foreground: var(--color-neutral-800);
+  /* 筛选标签等「选中」态：前景色反白，深浅主题各自取值 */
+  --selected: var(--color-neutral-800);
+  --selected-foreground: var(--color-white);
   --muted: --alpha(var(--color-black) / 4%);
   --muted-foreground: var(--color-neutral-500);
   --accent: --alpha(var(--color-black) / 4%);
@@ -129,6 +136,8 @@
   --popover-foreground: var(--color-neutral-100);
   --primary: var(--color-teal-600);
   --primary-bg: --alpha(var(--color-teal-600) / 15%);
+  --selected: var(--color-neutral-100);
+  --selected-foreground: var(--color-neutral-900);
   --primary-foreground: var(--color-white);
   --secondary: --alpha(var(--color-white) / 4%);
   --secondary-foreground: var(--color-neutral-100);

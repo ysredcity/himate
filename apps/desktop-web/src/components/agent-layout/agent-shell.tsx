@@ -270,7 +270,7 @@ export function AgentShell({ config, scenes, initialPinnedConversations = [], in
     onToggleFullscreen: below740 ? undefined : () => setPanelFullscreenRequested((value) => !value),
   }
 
-  // Composer「添加上下文 → 专家」只列已安装专家（含企业默认），随安装 / 删除实时变化。
+  // Composer「添加 → 专家」只列已安装专家（含企业默认），随安装 / 删除实时变化。
   const installedIds = new Set(installedExpertIds(scheduledExpertIds, expertCatalog))
   const composerConfig = {
     ...config,

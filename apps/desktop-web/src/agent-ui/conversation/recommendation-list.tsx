@@ -19,8 +19,9 @@ const arrowIcons = {
   'down-left': ArrowDownLeft,
 }
 
+// 首页推荐（up-left）悬停时箭头保持原位；对话页跟进建议（down-left）保留轻微下移
 const arrowMotionClasses = {
-  'up-left': 'group-hover:-translate-x-0.5 group-focus-visible:-translate-x-0.5',
+  'up-left': '',
   'down-left': 'group-hover:translate-y-0.5 group-focus-visible:translate-y-0.5',
 }
 

@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react"
-import { ArrowUp, Camera, Check, ChevronLeft, ChevronRight, Image as ImageIcon, Keyboard, Mic, Plus, RotateCcw, Search, X } from "lucide-react"
+import { ArrowUp, Camera, Check, ChevronLeft, ChevronRight, Image as ImageIcon, Keyboard, Mic, Plus, RotateCcw, X } from "lucide-react"
 import { toast } from "sonner"
 
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet"
@@ -52,7 +52,7 @@ type ImageUpload = UploadSample & { id: string; status: "uploading" | "done" | "
  * - 左下角图片按钮打开「拍照 / 从相册选择」面板（Figma 5271:64305），不调起真实相机或相册，使用本地示例图模拟上传；
  *   上传中显示 Spinner，失败可点击重试，可只发送图片。
  * - 同一面板底部有「专家」入口（参考用户截图），进入二级「专家」列表：与桌面 Composer 一致，只列已安装专家，
- *   支持搜索；选中后作为指定专家显示在输入框内。「查看更多专家」与桌面同文案，移动端暂无专家目录，点击仅提示。
+ *   选中后作为指定专家显示在输入框内。「查看更多专家」与桌面同文案，移动端暂无专家目录，点击仅提示。
  */
 export function MobileComposer({ experts, draft, onDraftChange, selectedExpert, onSelectedExpertChange, onSend, onRecommendationsOpenChange, showRecommendations = true, disabled = false, sending = false, placeholder = "发送消息给我" }: MobileComposerProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -65,8 +65,6 @@ export function MobileComposer({ experts, draft, onDraftChange, selectedExpert, 
   const installedExperts = useInstalledExperts()
   const openExperts = useOpenExperts()
   const [pickerView, setPickerView] = useState<"add" | "experts">("add")
-  const [expertQuery, setExpertQuery] = useState("")
-  const [searching, setSearching] = useState(false)
   const [uploads, setUploads] = useState<ImageUpload[]>([])
   const timers = useRef(new Map<string, ReturnType<typeof setTimeout>>())
   const hasValue = draft.trim().length > 0
@@ -187,8 +185,6 @@ export function MobileComposer({ experts, draft, onDraftChange, selectedExpert, 
   const openPicker = () => {
     keyboardBeforePicker.current = document.activeElement === textareaRef.current
     setPickerView("add")
-    setExpertQuery("")
-    setSearching(false)
     setPickerOpen(true)
   }
 
@@ -199,8 +195,6 @@ export function MobileComposer({ experts, draft, onDraftChange, selectedExpert, 
     // 键盘只由点击输入框调起：选专家、上传图片、选推荐指令都不自动聚焦（2026-11-11 用户要求）
   }
 
-  const query = expertQuery.trim()
-  const visibleExperts = query ? installedExperts.filter((expert) => `${expert.name}${expert.role}`.includes(query)) : installedExperts
 
   // 右侧键盘按钮只切换回文字输入模式，不聚焦输入框、不调起键盘（2026-11-11 用户要求）
   const exitVoice = () => setVoice(false)
@@ -369,9 +363,9 @@ export function MobileComposer({ experts, draft, onDraftChange, selectedExpert, 
                 <UploadOption icon={<Camera />} label="拍照" onClick={() => addImages(cameraSamples)} />
                 <UploadOption icon={<ImageIcon />} label="从相册选择" onClick={() => addImages(albumSamples, ALBUM_FAIL_ONCE_INDEX)} />
               </div>
-              <button type="button" className="mt-3 flex min-h-14 w-full items-center gap-3 rounded-2xl px-2 text-left text-base leading-6 text-foreground" onClick={() => setPickerView("experts")}>
+              <button type="button" className="mt-3 flex min-h-14 w-full items-center gap-3 rounded-2xl px-2 text-left text-base leading-6 font-medium text-foreground" onClick={() => setPickerView("experts")}>
                 {/* 图标与桌面「+」菜单的专家入口一致（contextIcons.专家 = Bot）；右侧不显示已选专家 */}
-                <ExpertEntryIcon aria-hidden="true" className="size-5" />
+                <ExpertEntryIcon aria-hidden="true" className="size-6" />
                 <span className="flex-1">专家</span>
                 <ChevronRight aria-hidden="true" className="size-5 text-muted-foreground" />
               </button>
@@ -379,19 +373,14 @@ export function MobileComposer({ experts, draft, onDraftChange, selectedExpert, 
           ) : (
             <>
               <div className="flex h-12 shrink-0 items-center gap-1">
-                <button type="button" aria-label="返回" className="-ml-2 grid size-11 place-items-center rounded-full" onClick={() => { setPickerView("add"); setExpertQuery(""); setSearching(false) }}><ChevronLeft className="size-6" /></button>
-                {searching ? (
-                  <input autoFocus value={expertQuery} onChange={(event) => setExpertQuery(event.target.value)} aria-label="搜索专家" placeholder="搜索专家" className="h-10 min-w-0 flex-1 rounded-full bg-background px-4 text-base outline-none placeholder:text-muted-foreground" />
-                ) : (
-                  <SheetTitle className="flex-1 text-base font-medium">专家</SheetTitle>
-                )}
-                {!searching && <button type="button" aria-label="搜索专家" className="grid size-11 place-items-center rounded-full" onClick={() => setSearching(true)}><Search className="size-5" /></button>}
+                <button type="button" aria-label="返回" className="-ml-2 grid size-11 place-items-center rounded-full" onClick={() => setPickerView("add")}><ChevronLeft className="size-6" /></button>
+                {/* 2026-11-11 去掉搜索：已安装专家数量有限，直接列出 */}
+                <SheetTitle className="flex-1 text-base font-medium">专家</SheetTitle>
                 <button type="button" aria-label="关闭" className="-mr-2 grid size-11 place-items-center rounded-full" onClick={() => setPickerOpen(false)}><X className="size-5" /></button>
               </div>
-              {searching && <SheetTitle className="sr-only">专家</SheetTitle>}
               <SheetDescription className="sr-only">选择一位已安装的专家执行你的下一条指令</SheetDescription>
               <ul className="mt-2 flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto" aria-label="已安装专家">
-                {visibleExperts.map((expert) => {
+                {installedExperts.map((expert) => {
                   const selected = expert.name === selectedExpert
                   return (
                     <li key={expert.id}>
@@ -399,14 +388,14 @@ export function MobileComposer({ experts, draft, onDraftChange, selectedExpert, 
                         <img src={expert.avatar} alt="" className="size-11 shrink-0 rounded-full object-cover" />
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-base leading-6 font-medium">{expert.name}</span>
-                          <span className="block truncate text-sm leading-5 text-muted-foreground">{expert.role}</span>
+                          <span className="block truncate text-sm leading-5 text-muted-foreground">{expert.description}</span>
                         </span>
                         {selected && <Check aria-hidden="true" className="size-5 shrink-0 text-primary" />}
                       </button>
                     </li>
                   )
                 })}
-                {visibleExperts.length === 0 && <li className="py-10 text-center text-sm text-muted-foreground">没有匹配的专家</li>}
+                {installedExperts.length === 0 && <li className="py-10 text-center text-sm text-muted-foreground">还没有安装的专家</li>}
               </ul>
               <button type="button" className="mt-3 h-12 w-full shrink-0 rounded-2xl bg-background text-base font-medium text-foreground" onClick={() => { setPickerOpen(false); if (openExperts) openExperts(); else toast.info("当前页面未提供专家列表") }}>查看更多专家</button>
             </>
@@ -421,7 +410,7 @@ export function MobileComposer({ experts, draft, onDraftChange, selectedExpert, 
 
 function UploadOption({ icon, label, onClick }: { icon: React.ReactNode; label: string; onClick: () => void }) {
   return (
-    <button type="button" onClick={onClick} className="flex flex-col items-center justify-center gap-2 rounded-2xl bg-accent px-3 py-4 text-sm leading-5 font-medium text-foreground transition-colors hover:bg-muted [&_svg]:size-8 [&_svg]:stroke-[1.5]">
+    <button type="button" onClick={onClick} className="flex flex-col items-center justify-center gap-2 rounded-2xl bg-accent px-3 py-4 text-sm leading-5 font-medium text-foreground transition-colors hover:bg-muted [&_svg]:size-7">
       {icon}
       {label}
     </button>

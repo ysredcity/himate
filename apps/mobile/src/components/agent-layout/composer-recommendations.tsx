@@ -19,7 +19,7 @@ export function ComposerRecommendations({ disabled, onOpen }: { disabled: boolea
 export function RecommendationItems({ category, disabled, onSelect }: { category: RecommendationCategory; disabled: boolean; onSelect: (item: HomeRecommendation) => void }) {
   return <div className="flex flex-col">
     {category.items.map(item => <Button key={item.prompt} variant="ghost" disabled={disabled} onClick={() => onSelect(item)} className="flex h-auto min-h-12 w-full justify-start gap-1.5 rounded-[10px] px-3 py-2 text-left text-base leading-6 font-normal whitespace-nowrap">
-      <span className="shrink-0 font-medium">{item.name}</span><span aria-hidden="true" className="mx-0.5 h-4 shrink-0 border-l border-border"/><span className="min-w-0 flex-1 truncate text-muted-foreground">{item.title}</span><ArrowDownLeft aria-hidden="true" className="size-[18px] shrink-0 text-foreground"/>
+      <span className="shrink-0 font-medium">{item.name}</span><span aria-hidden="true" className="mx-0.5 h-4 shrink-0 border-l border-border"/><span className="min-w-0 flex-1 truncate text-muted-foreground">{item.title}</span><ArrowDownLeft aria-hidden="true" className="size-[18px] shrink-0 text-muted-foreground"/>
     </Button>)}
   </div>
 }

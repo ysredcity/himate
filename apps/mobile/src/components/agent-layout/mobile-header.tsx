@@ -5,7 +5,8 @@ import { cn } from "@/lib/utils"
  * 移动端 chat-container-header-agent 的玻璃按钮（Figma 5271:62234、2516:59109）：
  * 白底、0.5px 描边、0 2px 6px 10% 投影，单个按钮 48px 圆形，按钮组为同样外观的胶囊。
  */
-export const glassSurface = "border-[0.5px] border-border bg-background drop-shadow-[0_2px_6px_rgba(0,0,0,0.1)]"
+// 深色模式下与页面背景拉开层次：底色比背景亮 10%（背景混 10% 前景色），描边 foreground/15（2026-11-11）
+export const glassSurface = "border-[0.5px] border-border bg-background drop-shadow-[0_2px_6px_rgba(0,0,0,0.1)] dark:border-foreground/15 dark:bg-[color-mix(in_oklab,var(--background)_90%,var(--foreground))]"
 
 /**
  * 悬浮磨砂玻璃（与工作台首页底部输入胶囊同感）：65% 背景 + 16px 模糊 + 浅色描边 + 浮层投影。

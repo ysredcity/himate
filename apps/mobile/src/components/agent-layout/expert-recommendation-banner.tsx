@@ -40,7 +40,7 @@ export function ExpertRecommendationBanner({ onSelect }: { onSelect: (expert: Ex
     <section
       aria-label="精选专家推荐"
       aria-roledescription="轮播"
-      className="relative touch-pan-y overflow-hidden rounded-2xl bg-success/8"
+      className="banner-light-text relative touch-pan-y overflow-hidden rounded-2xl bg-success/8"
       onPointerDown={(event) => { swipeStart.current = event.clientX; swiped.current = false; setTouching(true) }}
       onPointerUp={(event) => {
         setTouching(false)

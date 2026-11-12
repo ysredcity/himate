@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react"
+import { IndentIncrease } from "lucide-react"
 
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import type { AppConfig } from "@/agent-ui/immersive/contracts"
@@ -37,7 +38,7 @@ export function NewConversationPage({ config, isSidebarDocked, onOpenSidebar, on
   }
 
   return <div aria-label="新对话工作台" className="@container/home relative min-h-0 w-full flex-1 overflow-x-hidden overflow-y-auto bg-background-desktop">
-    {!isSidebarDocked && <div className="absolute top-4 left-4 z-10"><Tooltip><TooltipTrigger render={<IconButton aria-label="展开导航" className="group/nav relative size-8 bg-card shadow-md hover:bg-foreground hover:text-background focus-visible:bg-foreground focus-visible:text-background" onClick={onOpenSidebar}><img src={homeAssets.imgIndentIncrease} alt="" className="group-hover/nav:brightness-0 group-hover/nav:invert group-focus-visible/nav:brightness-0 group-focus-visible/nav:invert" /><span className="absolute top-0 right-0 size-2 rounded-full border border-card bg-destructive" /></IconButton>} /><TooltipContent side="right">展开导航</TooltipContent></Tooltip></div>}
+    {!isSidebarDocked && <div className="absolute top-4 left-4 z-10"><Tooltip><TooltipTrigger render={<IconButton aria-label="展开导航" className="group/nav relative size-8 bg-card shadow-md hover:bg-foreground hover:text-background focus-visible:bg-foreground focus-visible:text-background" onClick={onOpenSidebar}><IndentIncrease aria-hidden="true" className="size-4" /><span className="absolute top-0 right-0 size-2 rounded-full border border-card bg-destructive" /></IconButton>} /><TooltipContent side="right">展开导航</TooltipContent></Tooltip></div>}
 
     <div className={cn("px-4 pt-28 pb-20 max-[659px]:pt-20 max-[659px]:pb-12", compact && "pb-8")}>
       <div className="mx-auto w-full max-w-3xl">
