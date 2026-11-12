@@ -6,7 +6,7 @@ import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/
 import { cn } from "@/lib/utils"
 import type { WelcomeExpert } from "@/agent-ui/immersive/contracts"
 import type { ComposerSendHandler, ContextItem } from "./composer"
-import { ExpertLineIcon, shortExpertLabel } from "./resource-visuals"
+import { ExpertLineIcon } from "./resource-visuals"
 import { PillButton } from "./pill-button"
 import { contextIcons } from "./icon-registry"
 import { ComposerRecommendations, RecommendationItems, type RecommendationCategory } from "./composer-recommendations"
@@ -206,7 +206,7 @@ export function MobileComposer({ experts, draft, onDraftChange, selectedExpert, 
   }, [voice])
 
   // 文字模式与按住说话模式共用的已选专家标签
-  // 已选专家标签：PillButton 自定义样式（2026-11-11）。整枚标签即移除按钮，比单独的小 X 更好点；X 紧跟名称（间距 4px）
+  // 已选专家标签：PillButton 自定义样式（2026-11-11）。显示完整专家名称，与专家列表一致（2026-11-12），过长时省略。整枚标签即移除按钮，比单独的小 X 更好点；X 紧跟名称（间距 4px）
   const expertChip = selectedExpert ? (
     <PillButton
       aria-label={`移除专家 ${selectedExpert}`}
@@ -216,7 +216,7 @@ export function MobileComposer({ experts, draft, onDraftChange, selectedExpert, 
       onClick={() => onSelectedExpertChange(null)}
     >
       {selectedAvatar ? <img src={selectedAvatar} alt="" className="size-5 shrink-0 rounded-full object-cover" /> : <ExpertLineIcon expert={selectedExpert} visualKey={selectedVisualKey} />}
-      <span className="px-0.5">{shortExpertLabel(selectedExpert)}</span>
+      <span className="max-w-40 truncate px-0.5">{selectedExpert}</span>
       <X aria-hidden="true" />
     </PillButton>
   ) : null

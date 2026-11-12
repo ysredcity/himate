@@ -1,9 +1,8 @@
 import { useState } from "react"
-import { Menu } from "lucide-react"
 
 import type { AppConfig } from "@/agent-ui/immersive/contracts"
 import type { ContextItem } from "./composer"
-import { GlassAction } from "./mobile-header"
+import { NavMenuAction } from "./mobile-header"
 import { MobileComposer } from "./mobile-composer"
 
 type NewConversationPageProps = {
@@ -26,7 +25,7 @@ export function NewConversationPage({ config, initialExpert = null, isSidebarDoc
   return (
     <>
       <header className="flex shrink-0 items-center gap-3 px-4 py-2">
-        {!isSidebarDocked && <GlassAction label="展开导航" onClick={onOpenSidebar}><Menu /></GlassAction>}
+        {!isSidebarDocked && <NavMenuAction onClick={onOpenSidebar} />}
       </header>
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4">
         {/* 欢迎语距顶 144px（2026-11-11 由 96px 下移 48px） */}

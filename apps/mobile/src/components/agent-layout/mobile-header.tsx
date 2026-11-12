@@ -1,3 +1,5 @@
+import { createContext, useContext } from "react"
+import { Menu } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 
@@ -15,7 +17,7 @@ export const glassSurface = "border-[0.5px] border-border bg-background drop-sha
 export const glassSurfaceClass = "border border-white/80 bg-background/65 shadow-[0_4px_16px_rgba(0,0,0,0.1)] backdrop-blur-[16px] dark:border-white/10"
 
 /** 设计稿 chat-container-header-agent 的圆形玻璃按钮：48px、0.5px 描边、柔和投影 */
-export function GlassAction({ children, label, onClick }: { children: React.ReactNode; label: string; onClick: () => void }) {
+export function GlassAction({ children, label, onClick, badge = false }: { children: React.ReactNode; label: string; onClick: () => void; badge?: boolean }) {
   return (
     <Tooltip>
       <TooltipTrigger
@@ -24,9 +26,11 @@ export function GlassAction({ children, label, onClick }: { children: React.Reac
             type="button"
             aria-label={label}
             onClick={onClick}
-            className={cn("grid size-12 shrink-0 place-items-center rounded-full text-foreground transition-colors hover:bg-accent [&_svg]:size-6", glassSurface)}
+            className={cn("relative grid size-12 shrink-0 place-items-center rounded-full text-foreground transition-colors hover:bg-accent [&_svg]:size-6", glassSurface)}
           >
             {children}
+            {/* 与工作台首页历史按钮一致：8px destructive 圆点，相对按钮外框距顶 3px、距右 1px */}
+            {badge && <span aria-hidden="true" className="pointer-events-none absolute top-[2.5px] right-[0.5px] size-2 rounded-full bg-destructive" />}
           </button>
         }
       />
@@ -47,3 +51,12 @@ export function GlassGroupDivider() {
 
 /** 胶囊内的单个 48px 图标按钮；render 供 DropdownMenuTrigger 等组合使用 */
 export const glassGroupButtonClass = "grid size-12 place-items-center rounded-full text-foreground transition-colors hover:bg-accent [&_svg]:size-6"
+
+/** 是否存在需要处理的对话（等待回复 / 待批准 / 未读完成），由 AgentShell 提供；与首页历史按钮红点同一口径 */
+export const NavAttentionContext = createContext(false)
+
+/** 左上角「展开导航」按钮：存在需要处理的对话时右上角显示红点（2026-11-12） */
+export function NavMenuAction({ onClick }: { onClick: () => void }) {
+  const attention = useContext(NavAttentionContext)
+  return <GlassAction label={attention ? "展开导航，有需要处理的对话" : "展开导航"} badge={attention} onClick={onClick}><Menu /></GlassAction>
+}

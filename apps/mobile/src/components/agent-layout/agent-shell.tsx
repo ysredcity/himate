@@ -1,3 +1,4 @@
+import { NavAttentionContext } from "./mobile-header"
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { toast } from "sonner"
 
@@ -358,6 +359,7 @@ export function AgentShell({ config, scenes, initialPinnedConversations = [], in
   return (
     <>
     <InstalledExpertsContext value={{ installed: installedExperts, openExperts }}>
+    <NavAttentionContext value={hasAttention}>
     <TooltipProvider delay={150}>
       <SidebarProvider
         className="h-dvh min-h-0 min-w-0 overflow-hidden bg-background-mobile min-[660px]:min-w-[420px] md:bg-sidebar"
@@ -574,6 +576,7 @@ export function AgentShell({ config, scenes, initialPinnedConversations = [], in
         </main>
       </SidebarProvider>
     </TooltipProvider>
+    </NavAttentionContext>
     </InstalledExpertsContext>
     <Toaster theme={darkMode ? "dark" : "light"} position="top-center" />
     </>

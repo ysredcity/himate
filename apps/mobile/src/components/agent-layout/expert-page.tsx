@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type TouchEvent } from "react"
 import { Tabs } from "@base-ui/react/tabs"
-import { Check, ChevronRight, CircleCheckBig, Info, Menu, MessageCircle, Plus, Search, Store, Trash2, UserRound, UsersRound, X, type LucideIcon } from "lucide-react"
+import { Check, ChevronRight, CircleCheckBig, Info, MessageCircle, Plus, Search, Store, Trash2, UserRound, UsersRound, X, type LucideIcon } from "lucide-react"
 
 import { Alert, AlertTitle } from "@/components/ui/alert"
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils"
 import { ExpertRecommendationBanner } from "./expert-recommendation-banner"
 import { expertCatalog, expertScenes, type Expert } from "./expert-data"
 import { installedExpertIds, personalInstallationCount, SCHEDULED_EXPERT_LIMIT } from "./expert-rules"
-import { GlassAction, glassSurface, glassSurfaceClass } from "./mobile-header"
+import { NavMenuAction, glassSurface, glassSurfaceClass } from "./mobile-header"
 import { rem } from "@/lib/design-scale"
 
 type ExpertPageProps = {
@@ -118,7 +118,7 @@ export function ExpertPage({ scheduledIds, isSidebarDocked, onOpenSidebar, onAdd
       <Tabs.Root value={tab} onValueChange={(value) => setTab(value as ExpertTab)} className="flex min-h-0 flex-1 flex-col">
         {/* 顶部栏不透明并压在滚动区之上，避免与吸顶筛选栏之间透出列表内容（2026-11-11） */}
         <header className="relative z-30 flex h-16 shrink-0 items-center gap-3 bg-background px-4">
-          {!isSidebarDocked && <GlassAction label="展开导航" onClick={onOpenSidebar}><Menu /></GlassAction>}
+          {!isSidebarDocked && <NavMenuAction onClick={onOpenSidebar} />}
           <h1 className={cn("min-w-0 flex-1 truncate text-lg leading-7 font-medium tracking-[-0.18px] transition-opacity", searching && "opacity-0")}>专家</h1>
           {/*
             搜索：与左上角菜单 / 对话页右上胶囊同款玻璃外观；点击后在原位置向左展开为搜索框并聚焦，遮住标题。
@@ -164,7 +164,8 @@ export function ExpertPage({ scheduledIds, isSidebarDocked, onOpenSidebar, onAdd
                   <Info aria-hidden="true" /><AlertTitle>安装后支持自动调度，最多安装{SCHEDULED_EXPERT_LIMIT}个专家，企业默认安装的专家不占名额且不可卸载。</AlertTitle>
                 </Alert>
               )}
-              {item.id === "market" && <div data-swipe-ignore className="mb-1"><ExpertRecommendationBanner onSelect={setDetail} /></div>}
+              {/* Banner 与分类栏间距 20px（mb-3 12px + 吸顶层上内边距 8px，2026-11-12 由 12px 加大） */}
+              {item.id === "market" && <div data-swipe-ignore className="mb-3"><ExpertRecommendationBanner onSelect={setDetail} /></div>}
               {/*
                 场景 / 安装来源筛选：横滑胶囊，选中深灰底白字；滚到顶部时吸顶（2026-11-11）。已安装列表的来源筛选与专家市场同款（与桌面一致）。
                 吸顶层与横滑层分开：外层只负责 sticky 与不透明底色（z-20 高于列表行内按钮），内层负责横向滚动，避免抖动；

@@ -10,7 +10,7 @@ export function ComposerRecommendations({ disabled, onOpen }: { disabled: boolea
   return <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 py-1" role="group" aria-label="推荐指令分类">
     {homeRecommendationCategories.map(item => {
       const Icon = icons[item.id as keyof typeof icons]
-      return <Button key={item.id} variant="outline" disabled={disabled} aria-haspopup="dialog" onClick={() => onOpen(item)} className="h-9 shrink-0 gap-1.5 rounded-full bg-card px-3 text-sm font-normal dark:bg-card"><Icon aria-hidden="true" className="size-4"/>{item.label}</Button>
+      return <Button key={item.id} variant="outline" disabled={disabled} aria-haspopup="dialog" onClick={() => onOpen(item)} className="h-10 shrink-0 gap-1.5 rounded-full bg-card px-3.5 text-sm font-medium dark:bg-card"><Icon aria-hidden="true" className="size-[18px]"/>{item.label}</Button>
     })}
   </div>
 }

@@ -188,3 +188,9 @@
 - 2026-11-11 17:10 追加（移动端）：Composer 专家面板去掉搜索（状态、输入框、按钮、过滤逻辑），列表直接用 installedExperts。
 - 2026-11-11 17:20 追加（移动端）：`resource-visuals.tsx` 复制桌面 HiMateMark，`bot` 分支与桌面一致；sidebar 顶部固定 `productAvatar="bot"`（28px、标识 20px）。identity.avatar 仍为 himate 图片，只用于对话流。实测导航头像为 28px primary 圆底 SPAN。
 - 2026-11-12 追加：用户授权，PC 与移动端全部改动提交到 main 并推送，feat/home-agents-figma 同步到同一提交。
+- 2026-11-12 追加（移动端）：Banner 外层 mb-1→mb-3，与分类栏间距 20px。
+- 2026-11-12 追加（移动端）：Banner 比例试 2:1、3:1 后用户要求恢复原 160px（402 宽下 37:16，随等比缩放保持）；Composer 已选专家标签改显示完整名称（max-w-40 truncate）。
+- 2026-11-12 追加（移动端）：推荐分类标签 font-normal→font-medium。
+- 2026-11-12 追加（移动端）：`mobile-header.tsx` 新增 `NavAttentionContext` / `NavMenuAction`，GlassAction 支持 `badge`；三处菜单按钮改用 NavMenuAction。实测三页红点与首页位置一致（距顶约 3px、距右约 1px）。
+- 2026-11-12 追加（移动端）：推荐分类按钮 h-10 / px-3.5 / 图标 18px（用户确认）。实测 40px 高，距 Composer 12px。
+- 2026-11-12 追加：用户再次授权提交 main 并推送；本轮只有移动端与文档改动，桌面端无未提交改动；feat/home-agents-figma 同步到同一提交。
