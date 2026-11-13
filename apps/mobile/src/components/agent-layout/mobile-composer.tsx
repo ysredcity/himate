@@ -267,6 +267,13 @@ export function MobileComposer({ experts, draft, onDraftChange, selectedExpert, 
               onSelectedExpertChange(item.expert ?? null)
               setVoice(false)
               closeRecommendations()
+              // 选推荐指令是明确的「开始输入」意图：聚焦输入框（宿主随之弹出模拟键盘），光标放到末尾（2026-11-12 用户要求）
+              requestAnimationFrame(() => {
+                const textarea = textareaRef.current
+                if (!textarea) return
+                textarea.focus()
+                textarea.setSelectionRange(item.prompt.length, item.prompt.length)
+              })
             }} />
           </div>
         </section>
@@ -277,7 +284,8 @@ export function MobileComposer({ experts, draft, onDraftChange, selectedExpert, 
         // 已选专家时（参考用户截图）：上方整行「按住说话」，下方操作栏为「+」、专家标签与键盘切换，外框 24px 圆角
         <div className={cn("overflow-hidden border bg-background shadow-[0_4px_16px_rgba(0,0,0,0.08)]", uploads.length || selectedExpert ? "rounded-[24px]" : "rounded-[28px]")}>
         {attachmentList}
-        <div className={cn("flex items-center px-2.5", selectedExpert ? "h-[46px] pt-1.5" : "h-[54px]")}>
+        {/* 有图片时按压区下移 12px，与缩略图拉开距离，避免点缩略图 / 关闭按钮时误触「按住说话」（2026-11-12） */}
+        <div className={cn("flex items-center px-2.5", selectedExpert ? "h-[46px] pt-1.5" : "h-[54px]", uploads.length > 0 && "mt-3")}>
           {/* 按住说话模式也保留「+」添加入口，位置与文字模式一致；已选专家时移到下方操作栏 */}
           {!selectedExpert && <InputButton label="添加图片或专家" disabled={locked} onClick={openPicker}><Plus /></InputButton>}
           <button

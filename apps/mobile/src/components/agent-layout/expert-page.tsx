@@ -265,7 +265,7 @@ export function ExpertPage({ scheduledIds, isSidebarDocked, onOpenSidebar, onAdd
   )
 }
 
-/** 列表行（参考截图）：56px 头像、名称、能力标签（竖线分隔）、一行描述，右侧召唤 / 进入 */
+/** 列表行：56px 头像、名称、两行描述（固定高度，超出省略），右侧召唤 / 进入 */
 function ExpertRow({ expert, onDetail, onSummon }: { expert: Expert; onDetail: () => void; onSummon: () => void }) {
   return (
     <li className="relative flex items-center gap-3 py-3">
@@ -273,8 +273,8 @@ function ExpertRow({ expert, onDetail, onSummon }: { expert: Expert; onDetail: (
       <img src={expert.avatar} alt="" loading="lazy" className="pointer-events-none size-14 shrink-0 rounded-full object-cover" />
       <div className="pointer-events-none min-w-0 flex-1">
         <h2 className="truncate text-base leading-6 font-medium">{expert.name}</h2>
-        <p className="truncate text-sm leading-5 text-muted-foreground">{expert.tags.join(" | ")}</p>
-        <p className="truncate text-sm leading-5 text-muted-foreground">{expert.description}</p>
+        {/* 2026-11-12：不再显示第二行能力标签，描述固定两行高度（40px），超出省略 */}
+        <p className="mt-0.5 line-clamp-2 h-10 text-sm leading-5 text-muted-foreground">{expert.description}</p>
       </div>
       {/* 与桌面一致：可召唤为 primary「召唤」，否则为 secondary「进入」且不跳转 */}
       <button type="button" aria-label={`${expert.canSummon ? "召唤" : "进入"}${expert.name}`} onClick={expert.canSummon ? onSummon : undefined} className={cn("relative z-10 h-9 shrink-0 rounded-full px-4 text-sm font-medium", expert.canSummon ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground")}>
