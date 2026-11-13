@@ -88,7 +88,9 @@ AgentShell持有页面选择、scheduledExpertIds（默认企业hr / travel，�
 
 专家目录当前不含收藏功能；“已安装”对应内部scheduledExpertIds自动调度名单。卡片与详情共用ExpertActions，当前为底部左右分置独立Button，左安装状态 / 删除，右召唤 / 进入及对应右侧图标。已物化的标准base-nova `components/ui/button-group.tsx`保留为基础组件，目前此处不再使用，不增加依赖。市场与我的专家中已安装按钮禁用；删除安装仅在已安装Tab提供。
 
-企业默认安装与计额见[ADR 0006](decisions/0006-enterprise-default-installations.md)。expert-rules.ts集中规范化安装列表、只统计非enterpriseDefault的20位额度并保护删除入口，企业默认始终可自动匹配。Header计数只统计自行安装（不含企业默认），列表Alert显示额度说明；默认目录15条、已安装5位（2默认+3普通）。UI Alert从base-nova标准组件物化，复用既有cva / cn，不增加依赖。
+使用权限：Expert 的可选 `hasPermission: false` 表示无权限（示例 business / research / design）；AgentShell 持有 `permissionStatus`（pending / granted），通过 `permissionOf` 与 `onRequestPermission` 传给 ExpertPage，提交申请后用定时器模拟约 8 秒审批通过，刷新即重置。安装与召唤入口在壳层再次校验权限。
+
+企业默认安装与计额见[ADR 0006](decisions/0006-enterprise-default-installations.md)。expert-rules.ts集中规范化安装列表、只统计非enterpriseDefault的10位额度（`SCHEDULED_EXPERT_LIMIT`）并保护删除入口，企业默认始终可自动匹配。Header计数只统计自行安装（不含企业默认），列表Alert显示额度说明；默认目录15条、已安装5位（2默认+3普通）。UI Alert从base-nova标准组件物化，复用既有cva / cn，不增加依赖。
 
 ## 移动宿主预览边界
 

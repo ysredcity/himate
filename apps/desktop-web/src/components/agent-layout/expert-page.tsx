@@ -1,11 +1,12 @@
 import { useRef, useState } from "react"
 import { Tabs } from "@base-ui/react/tabs"
-import { Check, ChevronRight, IndentIncrease, Info, MessageCircle, Plus, Search, Trash2, Users, UsersRound, X } from "lucide-react"
+import { Check, ChevronRight, IndentIncrease, KeyRound, Info, MessageCircle, Plus, Search, Trash2, Users, UsersRound, X } from "lucide-react"
 
 import { Alert, AlertAction, AlertTitle } from "@/components/ui/alert"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { toast } from "sonner"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
@@ -14,8 +15,13 @@ import { IconButton } from "./icon-button"
 import { expertCatalog, expertScenes, type Expert } from "./expert-data"
 import { installedExpertIds, personalInstallationCount, SCHEDULED_EXPERT_LIMIT } from "./expert-rules"
 
+/** granted：有权限；none：无权限可申请；pending：申请审核中 */
+export type ExpertPermission = "granted" | "none" | "pending"
+
 type ExpertPageProps = {
   scheduledIds: readonly string[]
+  permissionOf: (expert: Expert) => ExpertPermission
+  onRequestPermission: (expert: Expert) => void
   isSidebarDocked: boolean
   onOpenSidebar: () => void
   onAdd: (id: string) => void
@@ -42,7 +48,7 @@ function matchesQuery(expert: Expert, query: string) {
   return [expert.name, expert.role, expert.description, expert.scene, ...expert.tags].some((text) => text.toLowerCase().includes(keyword))
 }
 
-export function ExpertPage({ scheduledIds, isSidebarDocked, onOpenSidebar, onAdd, onRemove, onSummon }: ExpertPageProps) {
+export function ExpertPage({ scheduledIds, permissionOf, onRequestPermission, isSidebarDocked, onOpenSidebar, onAdd, onRemove, onSummon }: ExpertPageProps) {
   const [tab, setTab] = useState<ExpertTab>("market")
   const [scene, setScene] = useState("全部")
   const [installSource, setInstallSource] = useState<InstallSource>("全部")
@@ -50,6 +56,14 @@ export function ExpertPage({ scheduledIds, isSidebarDocked, onOpenSidebar, onAdd
   const [query, setQuery] = useState("")
   // 卸载需二次确认：卡片与详情都只记录待卸载的专家，确认后才真正移出名单
   const [uninstalling, setUninstalling] = useState<Expert | null>(null)
+  const [requesting, setRequesting] = useState<Expert | null>(null)
+  const [reason, setReason] = useState("")
+  const openRequest = (expert: Expert) => { setReason(""); setRequesting(expert) }
+  const submitRequest = () => {
+    if (!requesting || !reason.trim()) return
+    onRequestPermission(requesting)
+    setRequesting(null)
+  }
   const confirmUninstall = () => {
     if (!uninstalling) return
     onRemove(uninstalling.id)
@@ -59,7 +73,7 @@ export function ExpertPage({ scheduledIds, isSidebarDocked, onOpenSidebar, onAdd
   }
   const searchRef = useRef<HTMLInputElement>(null)
   const installedIds = installedExpertIds(scheduledIds, expertCatalog)
-  // Tab 计数只算自行安装的专家，企业默认安装不计入（与 20 位额度口径一致）
+  // Tab 计数只算自行安装的专家，企业默认安装不计入（与自行安装额度口径一致）
   const personalCount = personalInstallationCount(installedIds, expertCatalog)
   const baseLists = {
     market: expertCatalog.filter((expert) => (scene === "全部" || expert.scene === scene)),
@@ -106,7 +120,7 @@ export function ExpertPage({ scheduledIds, isSidebarDocked, onOpenSidebar, onAdd
             {item.id === "market" && <FilterChips label="按场景筛选专家" options={["全部", ...expertScenes]} value={scene} onChange={setScene} />}
             {item.id === "scheduled" && <FilterChips label="按安装来源筛选专家" options={installSources} value={installSource} onChange={setInstallSource} className="mt-4" />}
             <div className="mt-5 grid grid-cols-1 gap-3 @min-[660px]/experts:grid-cols-2 @min-[1000px]/experts:grid-cols-3 @min-[1320px]/experts:grid-cols-4">
-              {lists[item.id].map((expert) => <ExpertCard key={expert.id} expert={expert} scheduled={installedIds.includes(expert.id)} removable={item.id === "scheduled"} onDetail={() => setDetail(expert)} onAdd={() => onAdd(expert.id)} onRemove={() => setUninstalling(expert)} onSummon={() => summon(expert)} />)}
+              {lists[item.id].map((expert) => <ExpertCard key={expert.id} expert={expert} scheduled={installedIds.includes(expert.id)} removable={item.id === "scheduled"} onDetail={() => setDetail(expert)} onAdd={() => onAdd(expert.id)} onRemove={() => setUninstalling(expert)} onSummon={() => summon(expert)} permission={permissionOf(expert)} onRequest={() => openRequest(expert)} />)}
             </div>
             {query.trim() && baseLists[item.id].length > 0 && lists[item.id].length === 0 && <div role="status" className="mt-6 flex min-h-64 flex-col items-center justify-center gap-2 px-4 text-center">
               <p className="text-base font-medium text-muted-foreground">未找到符合筛选的内容</p>
@@ -116,7 +130,7 @@ export function ExpertPage({ scheduledIds, isSidebarDocked, onOpenSidebar, onAdd
             {baseLists[item.id].length === 0 && <div className="mt-6 flex min-h-64 flex-col items-center justify-center gap-3 rounded-2xl border border-dashed bg-card text-center">
               <UsersRound className="size-8 text-muted-foreground" />
               <p className="font-medium">{item.id === "scheduled" ? (installSource === "我安装的" ? "还没有自行安装的专家" : "还没有安装的专家") : item.id === "mine" ? "还没有发布的专家" : "暂无符合条件的专家"}</p>
-              <p className="px-4 text-sm text-muted-foreground">{item.id === "scheduled" ? "从专家市场或我的专家中安装，最多自行安装 20 位。" : "试试调整筛选条件，或稍后再来查看。"}</p>
+              <p className="px-4 text-sm text-muted-foreground">{item.id === "scheduled" ? `从专家市场或我的专家中安装，最多自行安装 ${SCHEDULED_EXPERT_LIMIT} 位。` : "试试调整筛选条件，或稍后再来查看。"}</p>
               {item.id === "scheduled" && <Button variant="outline" onClick={() => setTab("market")}>去专家市场</Button>}
             </div>}
           </Tabs.Panel>)}
@@ -147,9 +161,24 @@ export function ExpertPage({ scheduledIds, isSidebarDocked, onOpenSidebar, onAdd
             </div>
           </dl>
           <div className="flex justify-end border-t pt-4">
-            <ExpertActions expert={detail} installed={installedIds.includes(detail.id)} removable={tab === "scheduled"} size="default" onInstall={() => onAdd(detail.id)} onRemove={() => setUninstalling(detail)} onSummon={() => summon(detail)} />
+            <ExpertActions expert={detail} installed={installedIds.includes(detail.id)} removable={tab === "scheduled"} size="default" onInstall={() => onAdd(detail.id)} onRemove={() => setUninstalling(detail)} onSummon={() => summon(detail)} permission={permissionOf(detail)} onRequest={() => openRequest(detail)} />
           </div>
         </>}
+      </DialogContent>
+    </Dialog>
+    <Dialog open={Boolean(requesting)} onOpenChange={(open) => { if (!open) setRequesting(null) }}>
+      <DialogContent className="rounded-2xl sm:max-w-[480px]">
+        <DialogHeader>
+          <DialogTitle>申请使用「{requesting?.name}」</DialogTitle>
+          <DialogDescription className="sr-only">填写申请理由后提交，审批通过即可使用该专家</DialogDescription>
+        </DialogHeader>
+        <form className="grid gap-4" onSubmit={(event) => { event.preventDefault(); submitRequest() }}>
+          <Textarea autoFocus aria-label="申请理由" placeholder="请输入申请理由" className="min-h-20 resize-none" value={reason} onChange={(event) => setReason(event.target.value)} />
+          <DialogFooter>
+            <DialogClose render={<Button type="button" variant="outline" />}>取消</DialogClose>
+            <Button type="submit" disabled={!reason.trim()}>提交</Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
     <Dialog open={Boolean(uninstalling)} onOpenChange={(open) => { if (!open) setUninstalling(null) }}>
@@ -167,7 +196,7 @@ export function ExpertPage({ scheduledIds, isSidebarDocked, onOpenSidebar, onAdd
   </section>
 }
 
-function ExpertCard({ expert, scheduled, removable, onDetail, onAdd, onRemove, onSummon }: { expert: Expert; scheduled: boolean; removable: boolean; onDetail: () => void; onAdd: () => void; onRemove: () => void; onSummon: () => void }) {
+function ExpertCard({ expert, scheduled, removable, permission, onDetail, onAdd, onRemove, onSummon, onRequest }: { expert: Expert; scheduled: boolean; removable: boolean; permission: ExpertPermission; onDetail: () => void; onAdd: () => void; onRemove: () => void; onSummon: () => void; onRequest: () => void }) {
   return <article className="relative flex min-w-0 flex-col gap-3 rounded-2xl border border-border bg-card p-4 transition-shadow hover:shadow-home-card-hover focus-within:shadow-home-card-hover">
     <button type="button" aria-label={`查看${expert.name}详情`} onClick={onDetail} className="absolute inset-0 rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-ring" />
     <div className="pointer-events-none relative flex min-w-0 items-start gap-2">
@@ -180,12 +209,12 @@ function ExpertCard({ expert, scheduled, removable, onDetail, onAdd, onRemove, o
       </div>
     </div>
     <p className="pointer-events-none line-clamp-2 min-h-9 text-xs leading-[18px] text-muted-foreground">{expert.description}</p>
-      <ExpertActions expert={expert} installed={scheduled} removable={removable} onInstall={onAdd} onRemove={onRemove} onSummon={onSummon} />
+      <ExpertActions expert={expert} installed={scheduled} removable={removable} permission={permission} onInstall={onAdd} onRemove={onRemove} onSummon={onSummon} onRequest={onRequest} />
   </article>
 }
 
 /** size：卡片内用 sm，详情对话框用 default（大一号） */
-function ExpertActions({ expert, installed, removable, size = "sm", onInstall, onRemove, onSummon }: { expert: Expert; installed: boolean; removable: boolean; size?: "sm" | "default"; onInstall: () => void; onRemove: () => void; onSummon: () => void }) {
+function ExpertActions({ expert, installed, removable, permission, size = "sm", onInstall, onRemove, onSummon, onRequest }: { expert: Expert; installed: boolean; removable: boolean; permission: ExpertPermission; size?: "sm" | "default"; onInstall: () => void; onRemove: () => void; onSummon: () => void; onRequest: () => void }) {
   const canRemove = removable && !expert.enterpriseDefault
   const isInstalled = installed || Boolean(expert.enterpriseDefault)
   const locked = Boolean(expert.enterpriseDefault) || (isInstalled && !canRemove)
@@ -194,12 +223,15 @@ function ExpertActions({ expert, installed, removable, size = "sm", onInstall, o
   const showText = locked || size === "default" || !canRemove
   const text = canRemove ? "卸载" : isInstalled ? "已安装" : "安装"
   return <div role="group" aria-label={`${expert.name}操作`} className="pointer-events-none relative z-10 mt-auto flex w-full items-center justify-between gap-3">
-    {expert.canSummon ? <Tooltip>
+    {/* 无权限时不提供安装：先申请权限，通过后再按是否可召唤显示原有操作 */}
+    {expert.canSummon && permission === "granted" ? <Tooltip>
       <TooltipTrigger render={<span className="pointer-events-auto inline-flex" tabIndex={locked ? 0 : undefined} aria-label={locked ? `${expert.name}${label}` : undefined} />}>
         <Button variant="outline" size={showText ? size : "icon-sm"} disabled={locked} aria-label={`${label}${expert.name}`} className={canRemove ? "text-destructive-foreground hover:bg-destructive-bg hover:text-destructive-foreground" : undefined} onClick={locked ? undefined : canRemove ? onRemove : onInstall}>{canRemove ? <Trash2 /> : isInstalled ? <Check /> : <Plus />}{showText && <span>{text}</span>}</Button>
       </TooltipTrigger>
       <TooltipContent>{expert.enterpriseDefault ? "企业默认安装，不可卸载" : !isInstalled ? "安装后可自动调用" : label}</TooltipContent>
     </Tooltip> : <span />}
-    <Button variant={expert.canSummon ? "default" : "secondary"} size={size} className={cn("pointer-events-auto", size === "sm" ? "px-3" : "px-4")} aria-label={`${expert.canSummon ? "召唤" : "进入"}${expert.name}`} onClick={expert.canSummon ? onSummon : undefined}>{expert.canSummon ? "召唤" : "进入"}{expert.canSummon ? <MessageCircle aria-hidden="true" data-icon="inline-end" /> : <ChevronRight aria-hidden="true" data-icon="inline-end" />}</Button>
+    {permission === "none" ? <Button variant="outline" size={size} className={cn("pointer-events-auto", size === "sm" ? "px-3" : "px-4")} aria-label={`申请权限${expert.name}`} onClick={onRequest}>申请权限<KeyRound aria-hidden="true" data-icon="inline-end" /></Button>
+    : permission === "pending" ? <Button variant="secondary" size={size} disabled className={size === "sm" ? "px-3" : "px-4"}>申请审核中</Button>
+    : <Button variant="default" size={size} className={cn("pointer-events-auto", size === "sm" ? "px-3" : "px-4", !expert.canSummon && "bg-foreground text-background hover:bg-foreground/80")} aria-label={`${expert.canSummon ? "召唤" : "进入"}${expert.name}`} onClick={expert.canSummon ? onSummon : undefined}>{expert.canSummon ? "召唤" : "进入"}{expert.canSummon ? <MessageCircle aria-hidden="true" data-icon="inline-end" /> : <ChevronRight aria-hidden="true" data-icon="inline-end" />}</Button>}
   </div>
 }

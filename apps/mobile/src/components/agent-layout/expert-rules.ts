@@ -1,7 +1,7 @@
 /** 专家安装与调度规则：apps/desktop-web 同名文件的逐字副本，修改时两端同步。 */
 import type { Expert } from "./expert-data"
 
-export const SCHEDULED_EXPERT_LIMIT = 20
+export const SCHEDULED_EXPERT_LIMIT = 10
 
 export function installedExpertIds(ids: readonly string[], catalog: readonly Expert[]): string[] {
   const selected = new Set(ids)

@@ -22,6 +22,7 @@
 - 影响：`src/preview/host-bridge.ts`、`host-preview-layout.tsx`、新增 `host-keyboard.tsx`、`host-preview.css`、`src/index.css`（键盘取色 Token 与 inset 归零）、`mobile-composer.tsx`。
 - 键盘高度固定 336px（iOS 402 宽拼音键盘示意），弹出 / 收起 250ms 高度过渡，尊重减弱动效。
 - 首页底部「发消息或按住说话」入口与专家搜索框不触发模拟键盘（本次只覆盖 Composer）。
+- 2026-11-12 补充：新增 `src/hooks/use-host-keyboard.ts`，普通文本框可通过它接入模拟键盘（目前用于专家「申请权限」抽屉的申请理由）。
 
 ## 验证
 2026-11-11 Playwright 宿主 402×874：聚焦前 iframe 高 786、键盘 0；聚焦后键盘 336、iframe 450、底部 Tab / Home Indicator 隐藏、产品 inset 为 0；依次点 h、i、空格、大写 + M 得到「hi M」，删除后「hi 」，输入框保持聚焦；点「发送」后消息发出、输入框清空；失焦后键盘收起、iframe 恢复 786。真机未验证。

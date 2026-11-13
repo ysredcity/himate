@@ -7,6 +7,31 @@
 ## 第二十一项：Banner 深色下保持浅色文字
 
 - `theme.css` 的 `:root` 选择器扩为 `:root, .theme-light`；Banner `section` 加 `theme-light text-foreground`（需显式 text-foreground，否则继承的是 body 已解析的深色值）。实测深色下标题 oklch(0.269) / 描述 oklch(0.556)，与浅色一致，页面其他区域不受影响；gate 通过。未提交。
+## 第二十七项：满额提示文案
+
+- `agent-shell.tsx` `addExpertToSchedule` 的 `full` 分支 Toast（error）改为「每人最多安装 {LIMIT} 个专家」（原：最多自行安装 N 位专家，请先删除其他已安装专家）。用户说“alert 提示”，按现有的 Toast 理解（点击触发的瞬时提示），未改为内联 Alert。
+- 验证：示例数据自行安装最多 8 位触不到上限，浏览器验证时临时把常量改为 3 实测后已还原为 10（`git diff` 确认）。未提交。
+
+## 第二十六项：安装上限 20 → 10
+
+- `expert-rules.ts` 的 `SCHEDULED_EXPERT_LIMIT` 改为 10；Alert、满额 Toast 本就读常量，空状态说明（原写死“20 位”）改为读常量；`expert-rules.test.ts` 的上限用例改为按常量构造数据（limit+1 条）并断言 limit === 10；DESIGN / ARCHITECTURE 更新，ADR 0006 末尾追加调整说明。
+- 注意：可召唤专家共 10 位、含 2 位企业默认，示例数据下自行安装最多 8 位，演示里无法点出“满额”，只有测试覆盖；若要演示需增加可召唤专家。移动端 `apps/mobile` 仍是 20，未改。未提交。
+
+## 第二十五项：去掉名称旁权限标记
+
+- 删除 `PermissionBadge` 组件、`CircleCheck` 引用和卡片 / 详情标题处的包裹 `div`，名称恢复为单个 `h2` / `DialogTitle`。权限状态仅由按钮体现（`ExpertActions` 逻辑不变）。上一项里「已有权限」Tooltip 随标记一并移除。移动端权限标记未动。未提交。
+
+## 第二十四项：权限文案与进入按钮
+
+- 桌面：Tooltip / 可访问名「已有权限」；「申请授权」→「申请权限」（可访问名「申请权限{名称}」，申请对话框标题仍为「申请使用「名称」」）；「申请权限」按钮为 outline；「进入」按钮 `variant="default"` + `bg-foreground text-background hover:bg-foreground/80`（浅色深灰底白字，深色浅灰底深字，沿用发送按钮的做法），「召唤」不变。
+- 未改：移动端另一对话已同步过权限功能，其文案仍为「你有使用权限」「申请授权」、「进入」为 secondary，需要时另行对齐。未提交。
+
+## 第二十三项：专家使用权限与申请授权
+
+- `expert-data.ts` 新增可选 `hasPermission`（business / research / design 为 false）；`agent-shell.tsx` 持有 `permissionStatus` 与审批定时器（8 秒，卸载清理），`summonExpert` / `addExpertToSchedule` 拒绝无权限专家；`expert-page.tsx` 新增 `ExpertPermission` 类型、`PermissionBadge`、申请对话框，`ExpertActions` 按 none / pending / granted 切换按钮；「申请授权」按用户要求为 secondary，右侧 KeyRound 图标；`expert-data.ts` 导出 `initialPendingPermissionIds = ["design"]`，壳层以它初始化 `permissionStatus`，该条不挂审批定时器。
+- 实测：15 张卡片中 12 张有权限标记；经营分析专家提交申请 → 「申请审核中」禁用（详情同步）→ 约 8 秒后显示安装 + 召唤与权限标记；行业研究专家（不可召唤）通过后显示「进入」；空理由提交禁用；深色正常；gate 通过（含 6 项专家规则测试）。
+- 取舍：expert-rules 领域函数未加权限校验（权限状态在壳层，校验放在壳层入口）；移动端未同步。未提交。
+
 ## 第二十二项：深色模式检查
 
 - 深色下截图首页全页、Composer + 专家子菜单、专家页与详情。问题集中在用 `<img>` 引入的 Figma 单色 SVG（#262626 / 白色写死）：Composer 语音（c2c7f）与发送（c07f5，白箭头在深色白底按钮上消失）、首页标题栏配置（b55ff）与箭头（7f394，原 `dark:brightness-150` 无效）、报表日历（480a3）、抽屉形态展开导航（a5e49，原靠 invert 滤镜做悬停反色）。
@@ -198,3 +223,10 @@
 - 2026-11-12 追加（移动端）：语音模式有图片时按压行 mt-3。实测缩略图底到按压按钮顶：无专家 21px、有专家 20px。
 - 2026-11-12 追加（移动端）：专家列表行去掉 tags 行，描述 line-clamp-2 + h-10。402 实测 15 行均 90px，当前描述都在两行内。
 - 2026-11-12 追加：用户授权第五次提交 main 并推送；本轮只有移动端与文档改动，feat/home-agents-figma 同步。
+- 2026-11-12 追加（移动端）：专家权限同步桌面（未提交的桌面第二十三项）。`expert-data.ts` 重新逐字复制；`agent-shell.tsx` 加 permissionStatus / 定时器 / 召唤与安装入口校验；`expert-page.tsx` 加 ExpertPermission、PermissionBadge、申请对话框，ExpertRow 与 DetailActions 按 none / pending / granted 切换。402 实测：15 行中 12 行有标记；经营分析专家申请 → 审核中（行与详情）→ 8 秒后召唤 + 标记、详情显示安装 + 召唤；空理由提交禁用。
+- 2026-11-12 追加（移动端）：「申请授权」→「申请权限」，行内去图标；「进入」改 bg-foreground text-background（行与详情）。仅移动端，桌面未改。实测进入底 oklch(0.269)、白字。
+- 2026-11-12 追加（移动端）：去掉 PermissionBadge（行与详情）；申请权限 / 审核中改 outline（border + bg-background + text-foreground）。仅移动端。
+- 2026-11-12 追加（移动端）：申请权限改为 Sheet（initialFocus=reasonRef），`useHostKeyboard` hook 接模拟键盘；关闭时 effect 显式 reportKeyboard(false)（提交后 textarea 卸载不触发 blur）。宿主实测：打开即键盘 336、焦点在理由、抽屉底贴键盘；键盘输入「ok」+ 发送 → 提交、键盘收起、行变审核中；点关闭键盘收起。
+- 2026-11-12 追加（移动端）：安装上限 10——`expert-rules.ts` 与 `scripts/tests/expert-rules.test.ts` 从桌面（未提交改动）逐字复制，空状态文案改用常量；列表行「申请」/「审核中」，详情不变。
+- 2026-11-12 追加（移动端）：满额 Toast 改「每人最多安装 {LIMIT} 个专家」，与桌面一致。
+- 2026-11-12 追加：用户授权第六次提交 main 并推送，含桌面端专家权限 / 上限 10 等此前未提交改动；feat/home-agents-figma 同步。

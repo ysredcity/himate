@@ -2,28 +2,29 @@ import assert from "node:assert/strict"
 import { statSync } from "node:fs"
 import { test } from "node:test"
 import { expertCatalog, expertRecommendations, initialScheduledExpertIds } from "../../src/components/agent-layout/expert-data.ts"
-import { addScheduledExpert, installedExpertIds, personalInstallationCount, removeScheduledExpert, resolveDelegatedExpert } from "../../src/components/agent-layout/expert-rules.ts"
+import { addScheduledExpert, installedExpertIds, personalInstallationCount, removeScheduledExpert, resolveDelegatedExpert, SCHEDULED_EXPERT_LIMIT } from "../../src/components/agent-layout/expert-rules.ts"
 
 const defaults = expertCatalog.filter((expert) => expert.enterpriseDefault)
 
-test("普通安装20上限不计企业默认，去重、删除补位及无效ID", () => {
-  const extra = Array.from({ length: 21 }, (_, index) => ({ ...expertCatalog[2], id: `optional-${index}`, enterpriseDefault: false }))
+test("普通安装上限（10）不计企业默认，去重、删除补位及无效ID", () => {
+  const limit = SCHEDULED_EXPERT_LIMIT
+  assert.equal(limit, 10)
+  const extra = Array.from({ length: limit + 1 }, (_, index) => ({ ...expertCatalog[2], id: `optional-${index}`, enterpriseDefault: false }))
   const catalog = [...defaults, ...extra]
-  const twenty = [...defaults.map((expert) => expert.id), ...extra.slice(0, 20).map((expert) => expert.id)]
-  assert.equal(personalInstallationCount(twenty, catalog), 20)
-  assert.equal(twenty.length, 22)
-  assert.equal(addScheduledExpert(twenty, twenty[0], catalog).status, "duplicate")
-  const full = addScheduledExpert(twenty, extra[20].id, catalog)
+  const fullIds = [...defaults.map((expert) => expert.id), ...extra.slice(0, limit).map((expert) => expert.id)]
+  assert.equal(personalInstallationCount(fullIds, catalog), limit)
+  assert.equal(fullIds.length, defaults.length + limit)
+  assert.equal(addScheduledExpert(fullIds, fullIds[0], catalog).status, "duplicate")
+  const full = addScheduledExpert(fullIds, extra[limit].id, catalog)
   assert.equal(full.status, "full")
-  assert.deepEqual(full.ids, twenty)
-  const removed = removeScheduledExpert(twenty, extra[0].id, catalog)
-  assert.equal(personalInstallationCount(removed, catalog), 19)
-  const added = addScheduledExpert(removed, extra[20].id, catalog)
+  assert.deepEqual(full.ids, fullIds)
+  const removed = removeScheduledExpert(fullIds, extra[0].id, catalog)
+  assert.equal(personalInstallationCount(removed, catalog), limit - 1)
+  const added = addScheduledExpert(removed, extra[limit].id, catalog)
   assert.equal(added.status, "added")
-  assert.equal(added.ids.length, 22)
-  assert.equal(addScheduledExpert(twenty, "unknown", catalog).status, "invalid")
+  assert.equal(added.ids.length, defaults.length + limit)
+  assert.equal(addScheduledExpert(fullIds, "unknown", catalog).status, "invalid")
 })
-
 test("企业默认始终安装、不可删除且不占名额，普通示例预装3位", () => {
   assert.deepEqual(installedExpertIds([], expertCatalog), ["hr", "travel"])
   for (const expert of defaults) {

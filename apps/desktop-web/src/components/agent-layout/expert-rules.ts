@@ -1,6 +1,6 @@
 import type { Expert } from "./expert-data"
 
-export const SCHEDULED_EXPERT_LIMIT = 20
+export const SCHEDULED_EXPERT_LIMIT = 10
 
 export function installedExpertIds(ids: readonly string[], catalog: readonly Expert[]): string[] {
   const selected = new Set(ids)

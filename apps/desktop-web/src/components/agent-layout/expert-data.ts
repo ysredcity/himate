@@ -13,6 +13,8 @@ export type Expert = {
   canSummon: boolean
   visualKey: ExpertVisualKey
   avatar: string
+  /** false 表示当前用户无使用权限，需要申请授权；缺省为有权限 */
+  hasPermission?: boolean
   /** 演示用更新日期，展示在专家详情 */
   updatedAt: string
   patterns: string[]
@@ -24,12 +26,12 @@ export const expertCatalog: Expert[] = [
   { id: "project", name: "项目推进专家", role: "项目经理、团队负责人", description: "梳理跨部门项目目标、风险和责任人，辅助制定推进计划。", scene: "日常办公", tags: ["项目管理", "风险识别", "协同推进"], source: "智能体管理平台", mine: true, canSummon: true, visualKey: "office", avatar: "/figma-home/0542d.png", updatedAt: "2026-10-12", patterns: ["项目周报", "项目推进", "项目风险"] },
   { id: "document", name: "文档写作助手", role: "全体员工、文案撰写者", description: "整理工作材料、润色文字表达，协助形成清晰的文档结构。", scene: "日常办公", tags: ["文档整理", "文案润色", "结构提炼"], source: "智能体管理平台", mine: true, canSummon: true, visualKey: "document", avatar: "/figma-home/f4264.png", updatedAt: "2026-09-26", patterns: ["文案润色", "润色文字", "工作材料"] },
   { id: "meeting", name: "会议协作助手", role: "会议组织者、项目成员", description: "归纳会议结论与行动项，帮助团队跟进后续协作事项。", scene: "日常办公", tags: ["会议纪要", "行动清单"], source: "协同办公平台", mine: false, canSummon: true, visualKey: "document", avatar: "/figma-home/8258e.png", updatedAt: "2026-10-09", patterns: ["会议纪要", "会议行动项"] },
-  { id: "business", name: "经营分析专家", role: "经营管理者、业务分析师", description: "围绕经营目标解读业务指标，梳理变化趋势与分析思路。", scene: "数据分析", tags: ["经营指标", "趋势洞察", "业务分析"], source: "企业数据平台", mine: false, canSummon: true, visualKey: "data", avatar: "/figma-home/d548a.png", updatedAt: "2026-10-15", patterns: ["经营指标", "业务分析"] },
+  { id: "business", hasPermission: false, name: "经营分析专家", role: "经营管理者、业务分析师", description: "围绕经营目标解读业务指标，梳理变化趋势与分析思路。", scene: "数据分析", tags: ["经营指标", "趋势洞察", "业务分析"], source: "企业数据平台", mine: false, canSummon: true, visualKey: "data", avatar: "/figma-home/d548a.png", updatedAt: "2026-10-15", patterns: ["经营指标", "业务分析"] },
   { id: "sales", name: "销售洞察助手", role: "销售团队、区域负责人", description: "对比区域销售表现，辅助发现差异与增长机会。", scene: "数据分析", tags: ["销售对比", "区域洞察"], source: "营销服务平台", mine: false, canSummon: false, visualKey: "data", avatar: "/figma-home/f76cf.png", updatedAt: "2026-08-30", patterns: ["销售表现", "区域销售"] },
-  { id: "research", name: "行业研究专家", role: "战略研究员、产品经理", description: "梳理行业资料与竞争信息，辅助形成研究提纲。", scene: "知识学习", tags: ["行业研究", "资料提炼"], source: "企业知识平台", mine: false, canSummon: false, visualKey: "research", avatar: "/figma-home/6588c.png", updatedAt: "2026-09-18", patterns: ["行业资料", "竞争信息"] },
+  { id: "research", hasPermission: false, name: "行业研究专家", role: "战略研究员、产品经理", description: "梳理行业资料与竞争信息，辅助形成研究提纲。", scene: "知识学习", tags: ["行业研究", "资料提炼"], source: "企业知识平台", mine: false, canSummon: false, visualKey: "research", avatar: "/figma-home/6588c.png", updatedAt: "2026-09-18", patterns: ["行业资料", "竞争信息"] },
   { id: "learning", name: "学习成长助手", role: "全体员工、培训负责人", description: "围绕岗位能力目标，整理学习路径与阶段行动。", scene: "知识学习", tags: ["学习规划", "能力成长"], source: "企业学习平台", mine: false, canSummon: true, visualKey: "industry", avatar: "/figma-home/713b5.png", updatedAt: "2026-10-03", patterns: ["学习计划", "学习路径"] },
   { id: "campus", name: "园区生活助手", role: "园区员工、行政人员", description: "提供园区服务指引，帮助查找生活服务入口。", scene: "园区生活", tags: ["园区服务", "办事指引"], source: "智慧园区平台", mine: false, canSummon: false, visualKey: "campus", avatar: "/figma-home/bb2c3.png", updatedAt: "2026-08-21", patterns: ["园区服务", "园区生活"] },
-  { id: "design", name: "体验设计专家", role: "产品经理、体验设计师", description: "梳理体验问题，提供用户旅程与交互设计建议。", scene: "研发设计", tags: ["用户体验", "交互设计"], source: "研发协作平台", mine: false, canSummon: false, visualKey: "ux", avatar: "/figma-home/0542d.png", updatedAt: "2026-09-29", patterns: ["交互设计", "用户旅程"] },
+  { id: "design", hasPermission: false, name: "体验设计专家", role: "产品经理、体验设计师", description: "梳理体验问题，提供用户旅程与交互设计建议。", scene: "研发设计", tags: ["用户体验", "交互设计"], source: "研发协作平台", mine: false, canSummon: false, visualKey: "ux", avatar: "/figma-home/0542d.png", updatedAt: "2026-09-29", patterns: ["交互设计", "用户旅程"] },
   { id: "engineering", name: "技术知识助手", role: "研发工程师、技术负责人", description: "整理技术资料与工程知识，辅助理解方案和关键概念。", scene: "研发设计", tags: ["技术资料", "方案理解"], source: "研发协作平台", mine: false, canSummon: false, visualKey: "industry", avatar: "/figma-home/f4264.png", updatedAt: "2026-10-17", patterns: ["技术资料", "工程知识"] },
   { id: "finance", name: "财税助手", role: "财务人员、经营管理者", description: "整理财税资料与预算分析思路，辅助理解财务管理要求。", scene: "数据分析", tags: ["财税资料", "预算分析"], source: "财务共享平台", mine: false, canSummon: true, visualKey: "data", avatar: "/figma-home/d548a.png", updatedAt: "2026-10-20", patterns: ["财税资料", "财务预算"] },
   { id: "it-service", name: "IT服务助手", role: "全体员工、IT支持人员", description: "整理常见办公设备与系统问题，提供服务申请和排查指引。", scene: "日常办公", tags: ["IT支持", "故障指引"], source: "IT服务平台", mine: false, canSummon: true, visualKey: "industry", avatar: "/figma-home/6588c.png", updatedAt: "2026-10-06", patterns: ["IT服务", "电脑故障"] },
@@ -46,3 +48,6 @@ export const expertRecommendations = [
   { id: "travel", background: "/generated-banners/expert-travel.webp", title: "把出差安排，交给差旅专家", description: "从行程规划到申请报销，出发前后的准备都有章可循。" },
   { id: "business", background: "/generated-banners/expert-business.webp", title: "从业务数据，找到下一步方向", description: "梳理经营指标与变化趋势，让分析成为行动的起点。" },
 ]
+
+/** 演示初始数据：已提交申请、仍在审核中的无权限专家（不会自动通过） */
+export const initialPendingPermissionIds = ["design"]

@@ -12,9 +12,9 @@ import { Toaster } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { ArtifactPanel } from "./artifact-panel"
 import { ChatWorkspace } from "./chat-workspace"
-import { ExpertPage } from "./expert-page"
+import { ExpertPage, type ExpertPermission } from "./expert-page"
 import { InstalledExpertsContext } from "./expert-context"
-import { expertCatalog, initialScheduledExpertIds, type Expert } from "./expert-data"
+import { expertCatalog, initialPendingPermissionIds, initialScheduledExpertIds, type Expert } from "./expert-data"
 import { addScheduledExpert, installedExpertIds, removeScheduledExpert, resolveDelegatedExpert, SCHEDULED_EXPERT_LIMIT } from "./expert-rules"
 import { AgentSidebar, type Conversation } from "./sidebar"
 import { matchTrigger } from "@/agent-ui/script-engine/match"
@@ -255,16 +255,31 @@ export function AgentShell({ config, scenes, initialPinnedConversations = [], in
     setExpertsVisible(false)
     if (expertsReturnToHome) setHomeVisible(true)
   }
+  // 专家使用权限申请（与桌面一致）：仅内存演示，提交后进入审核中，约 8 秒后模拟审批通过；初始审核中的不会自动通过
+  const [permissionStatus, setPermissionStatus] = useState<Record<string, "pending" | "granted">>(() => Object.fromEntries(initialPendingPermissionIds.map((id) => [id, "pending" as const])))
+  const approvalTimers = useRef<number[]>([])
+  useEffect(() => () => approvalTimers.current.forEach((timer) => window.clearTimeout(timer)), [])
+  const expertPermission = (expert: Expert): ExpertPermission => expert.hasPermission !== false || permissionStatus[expert.id] === "granted" ? "granted" : permissionStatus[expert.id] === "pending" ? "pending" : "none"
+  const requestExpertPermission = (expert: Expert) => {
+    setPermissionStatus((status) => ({ ...status, [expert.id]: "pending" }))
+    toast.success("申请已提交，等待审批")
+    approvalTimers.current.push(window.setTimeout(() => {
+      setPermissionStatus((status) => ({ ...status, [expert.id]: "granted" }))
+      toast.success(`「${expert.name}」的使用申请已通过`)
+    }, 8000))
+  }
   /** 召唤：与桌面一致，回到新对话页并预选专家，不自动发送 */
   const summonExpert = (expert: Expert) => {
-    if (!expert.canSummon) return
+    if (!expert.canSummon || expertPermission(expert) !== "granted") return
     openConversation(null)
     setSummonedExpert({ name: expert.name, key: Date.now() })
   }
   const addExpertToSchedule = (id: string) => {
+    const target = expertCatalog.find((expert) => expert.id === id)
+    if (!target || expertPermission(target) !== "granted") return
     const result = addScheduledExpert(scheduledExpertIds, id, expertCatalog)
     if (result.status === "full") {
-      toast.error(`最多自行安装 ${SCHEDULED_EXPERT_LIMIT} 位专家，请先删除其他已安装专家`)
+      toast.error(`每人最多安装 ${SCHEDULED_EXPERT_LIMIT} 个专家`)
       return
     }
     if (result.status === "unsupported") {
@@ -417,6 +432,8 @@ export function AgentShell({ config, scenes, initialPinnedConversations = [], in
           ) : expertsVisible ? (
             <ExpertPage
               scheduledIds={scheduledExpertIds}
+              permissionOf={expertPermission}
+              onRequestPermission={requestExpertPermission}
               isSidebarDocked={sidebarDocked}
               onOpenSidebar={openSidebar}
               onAdd={addExpertToSchedule}
