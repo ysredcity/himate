@@ -183,7 +183,7 @@ export function ExpertPage({ scheduledIds, permissionOf, onRequestPermission, is
               )}
               {item.id === "scheduled" && (
                 <Alert className="*:[svg]:row-span-1">
-                  <Info aria-hidden="true" /><AlertTitle>安装后支持自动调度，最多安装{SCHEDULED_EXPERT_LIMIT}个专家，企业默认安装的专家不占名额且不可卸载。</AlertTitle>
+                  <Info aria-hidden="true" /><AlertTitle>安装后支持自动调度，最多安装{SCHEDULED_EXPERT_LIMIT}个专家，企业默认安装的专家不计数量且不可卸载</AlertTitle>
                 </Alert>
               )}
               {/* Banner 与分类栏间距 20px（mb-3 12px + 吸顶层上内边距 8px，2026-11-12 由 12px 加大） */}

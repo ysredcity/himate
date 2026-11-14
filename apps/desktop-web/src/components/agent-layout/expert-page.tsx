@@ -114,7 +114,7 @@ export function ExpertPage({ scheduledIds, permissionOf, onRequestPermission, is
               <AlertAction className="top-1/2 right-2.5 -translate-y-1/2"><Button variant="link" size="sm" className="h-auto p-0 text-sm font-medium">前往管理</Button></AlertAction>
             </Alert>}
             {item.id === "scheduled" && <Alert className="*:[svg]:row-span-1">
-              <Info aria-hidden="true" /><AlertTitle>安装后支持自动调度，最多安装{SCHEDULED_EXPERT_LIMIT}个专家，企业默认安装的专家不占名额且不可删除。</AlertTitle>
+              <Info aria-hidden="true" /><AlertTitle>安装后支持自动调度，最多安装{SCHEDULED_EXPERT_LIMIT}个专家，企业默认安装的专家不计数量且不可卸载</AlertTitle>
             </Alert>}
             {item.id === "market" && <ExpertRecommendationBanner onSelect={setDetail} />}
             {item.id === "market" && <FilterChips label="按场景筛选专家" options={["全部", ...expertScenes]} value={scene} onChange={setScene} />}
@@ -138,8 +138,10 @@ export function ExpertPage({ scheduledIds, permissionOf, onRequestPermission, is
     </div>
     </Tabs.Root>
     <Dialog open={Boolean(detail)} onOpenChange={(open) => { if (!open) setDetail(null) }}>
-      <DialogContent className="max-h-[85dvh] overflow-y-auto rounded-2xl sm:max-w-[520px]">
+      <DialogContent className="flex max-h-[min(640px,85dvh)] flex-col overflow-hidden rounded-2xl sm:max-w-[520px]">
         {detail && <>
+          {/* 内容区超出最大高度时内部滚动，底部操作栏固定 */}
+          <div className="-mr-2 grid min-h-0 flex-1 gap-4 overflow-y-auto pr-2">
           {/* 头像右侧：名称 + 更新时间 */}
           <DialogHeader className="flex-row items-center gap-3 pr-8">
             <img src={detail.avatar} alt="" className="size-12 shrink-0 rounded-xl object-cover" />
@@ -147,7 +149,7 @@ export function ExpertPage({ scheduledIds, permissionOf, onRequestPermission, is
               <DialogTitle className="truncate">{detail.name}</DialogTitle>
               <p className="text-xs leading-4 text-muted-foreground">更新时间：{detail.updatedAt}</p>
             </div>
-            <DialogDescription className="sr-only">{detail.description}</DialogDescription>
+            <DialogDescription className="sr-only">查看{detail.name}的适用角色、专家介绍与可用操作</DialogDescription>
           </DialogHeader>
           {/* 字段按上下堆叠：标题 14px Medium，内容在下方 */}
           <dl className="grid gap-4 text-sm">
@@ -157,10 +159,11 @@ export function ExpertPage({ scheduledIds, permissionOf, onRequestPermission, is
             </div>
             <div className="grid gap-2">
               <dt className="font-medium">专家介绍</dt>
-              <dd className="leading-6 text-muted-foreground">{detail.description}</dd>
+              <dd className="leading-6 whitespace-pre-line text-muted-foreground">{detail.description}</dd>
             </div>
           </dl>
-          <div className="flex justify-end border-t pt-4">
+          </div>
+          <div className="flex shrink-0 justify-end border-t pt-4">
             <ExpertActions expert={detail} installed={installedIds.includes(detail.id)} removable={tab === "scheduled"} size="default" onInstall={() => onAdd(detail.id)} onRemove={() => setUninstalling(detail)} onSummon={() => summon(detail)} permission={permissionOf(detail)} onRequest={() => openRequest(detail)} />
           </div>
         </>}

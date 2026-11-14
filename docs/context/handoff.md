@@ -7,6 +7,16 @@
 ## 第二十一项：Banner 深色下保持浅色文字
 
 - `theme.css` 的 `:root` 选择器扩为 `:root, .theme-light`；Banner `section` 加 `theme-light text-foreground`（需显式 text-foreground，否则继承的是 body 已解析的深色值）。实测深色下标题 oklch(0.269) / 描述 oklch(0.556)，与浅色一致，页面其他区域不受影响；gate 通过。未提交。
+## 第二十九项：详情对话框限高滚动
+
+- `expert-page.tsx`：`DialogContent` 改为 `flex flex-col overflow-hidden max-h-[min(640px,85dvh)]`，头像标题 + 字段包进 `overflow-y-auto` 区（`-mr-2 pr-2` 给滚动条留位），底部操作栏 `shrink-0` 固定；介绍 `dd` 加 `whitespace-pre-line`；读屏描述改为简短说明（原来与可见介绍重复）。
+- `expert-data.ts`：人事专家、项目推进专家的 description 改为多段长文本（卡片仍 line-clamp-2；搜索会匹配全文）。
+- 实测 1280×900：长介绍 dialog 640px、内容区 543/688 可滚，滚到底后底栏位置不变、最后一段可见；差旅专家短介绍 281px 不滚动；560px 高视口 dialog 476px 仍可滚；gate 通过。未提交。
+
+## 第二十八项：已安装 Alert 文案
+
+- `expert-page.tsx` 已安装 AlertTitle 改为「安装后支持自动调度，最多安装{LIMIT}个专家，企业默认安装的专家不计数量且不可卸载」（按用户给的原文，句末无句号；数字读 `SCHEDULED_EXPERT_LIMIT`）。移动端同类提示未改。未提交。
+
 ## 第二十七项：满额提示文案
 
 - `agent-shell.tsx` `addExpertToSchedule` 的 `full` 分支 Toast（error）改为「每人最多安装 {LIMIT} 个专家」（原：最多自行安装 N 位专家，请先删除其他已安装专家）。用户说“alert 提示”，按现有的 Toast 理解（点击触发的瞬时提示），未改为内联 Alert。
@@ -230,3 +240,5 @@
 - 2026-11-12 追加（移动端）：安装上限 10——`expert-rules.ts` 与 `scripts/tests/expert-rules.test.ts` 从桌面（未提交改动）逐字复制，空状态文案改用常量；列表行「申请」/「审核中」，详情不变。
 - 2026-11-12 追加（移动端）：满额 Toast 改「每人最多安装 {LIMIT} 个专家」，与桌面一致。
 - 2026-11-12 追加：用户授权第六次提交 main 并推送，含桌面端专家权限 / 上限 10 等此前未提交改动；feat/home-agents-figma 同步。
+- 2026-11-12 追加（移动端）：已安装 Alert 文案同步桌面「…不计数量且不可卸载」（无句号）。
+- 2026-11-12 追加：用户授权第七次提交 main 并推送；桌面 `expert-data.ts` 中人事 / 项目推进专家改为多段长描述（此前未提交的桌面改动），移动端副本未同步，待用户决定。
